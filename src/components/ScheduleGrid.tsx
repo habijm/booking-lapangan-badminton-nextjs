@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { format, addDays, isBefore, startOfDay, isToday } from 'date-fns';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { format, addDays, isBefore, isToday } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
 import { Booking, generateTimeSlots, isSlotBooked, formatTime, STATUS_CONFIG } from '@/types/booking';
@@ -10,19 +10,25 @@ interface ScheduleGridProps {
   waNumber?: string;
 }
 
+type RealtimeStatus = 'connecting' | 'live' | 'polling' | 'error';
+
 export default function ScheduleGrid({ waNumber = '6281234567890' }: ScheduleGridProps) {
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const today = new Date();
-    return format(today, 'yyyy-MM-dd');
-  });
+  const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>('connecting');
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const timeSlots = generateTimeSlots();
 
-  const fetchBookings = useCallback(async (date: string) => {
-    setLoading(true);
+  // Set mounted flag to avoid hydration mismatch
+  useEffect(() => { setIsMounted(true); }, []);
+
+  const fetchBookings = useCallback(async (date: string, silent = false) => {
+    if (!silent) setLoading(true);
     const { data, error } = await supabase
       .from('bookings')
       .select('*')
@@ -32,27 +38,56 @@ export default function ScheduleGrid({ waNumber = '6281234567890' }: ScheduleGri
 
     if (!error && data) {
       setBookings(data as Booking[]);
+      setLastUpdated(new Date());
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, []);
 
   useEffect(() => {
     fetchBookings(selectedDate);
-    // Realtime subscription
-    const subscription = supabase
-      .channel('bookings-channel')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'bookings',
-        filter: `booking_date=eq.${selectedDate}`,
-      }, () => {
-        fetchBookings(selectedDate);
-      })
-      .subscribe();
 
+    // --- Realtime subscription ---
+    const channelName = `schedule-${selectedDate}-${Date.now()}`;
+    const subscription = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings' },
+        (payload) => {
+          const record = (payload.new as Record<string, string>) || (payload.old as Record<string, string>);
+          if (!record?.booking_date || record.booking_date === selectedDate) {
+            fetchBookings(selectedDate, true);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setRealtimeStatus('live');
+          // Realtime aktif — hentikan polling jika ada
+          if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+          }
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          // Realtime gagal — fallback ke polling setiap 10 detik
+          setRealtimeStatus('polling');
+          if (!pollingRef.current) {
+            pollingRef.current = setInterval(() => {
+              fetchBookings(selectedDate, true);
+            }, 10000);
+          }
+        } else {
+          setRealtimeStatus('connecting');
+        }
+      });
+
+    // Cleanup
     return () => {
       supabase.removeChannel(subscription);
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
     };
   }, [selectedDate, fetchBookings]);
 
@@ -80,11 +115,38 @@ export default function ScheduleGrid({ waNumber = '6281234567890' }: ScheduleGri
     return `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
   };
 
+  const statusIndicator = {
+    connecting: { dot: 'bg-yellow-400 animate-pulse', text: 'Menghubungkan...', color: 'text-yellow-600' },
+    live:       { dot: 'bg-green-500 animate-pulse', text: 'Live · Auto-update', color: 'text-green-600' },
+    polling:    { dot: 'bg-blue-400 animate-pulse', text: 'Auto-refresh 10 dtk', color: 'text-blue-600' },
+    error:      { dot: 'bg-red-400', text: 'Offline', color: 'text-red-500' },
+  }[realtimeStatus];
+
   return (
     <div className="w-full">
+      {/* Realtime status indicator */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full inline-block ${statusIndicator.dot}`}></span>
+          <span className={`text-xs font-medium ${statusIndicator.color}`}>{statusIndicator.text}</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-gray-400">
+          {isMounted && lastUpdated && (
+            <span suppressHydrationWarning>Update: {format(lastUpdated, 'HH:mm:ss')}</span>
+          )}
+          <button
+            onClick={() => fetchBookings(selectedDate)}
+            className="px-2 py-1 rounded-lg bg-gray-100 hover:bg-court-green-pale text-gray-500 hover:text-court-green transition-colors"
+            title="Refresh manual"
+          >
+            ↻
+          </button>
+        </div>
+      </div>
+
       {/* Date selector */}
       <div className="mb-6">
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
           {dateOptions.map((d) => (
             <button
               key={d.value}
@@ -156,10 +218,7 @@ export default function ScheduleGrid({ waNumber = '6281234567890' }: ScheduleGri
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
           {timeSlots.map((slot) => {
             const booked = isSlotBooked(slot, bookings);
-            const isPast = isBefore(
-              new Date(`${selectedDate}T${slot}`),
-              new Date()
-            );
+            const isPast = isBefore(new Date(`${selectedDate}T${slot}`), new Date());
 
             if (booked) {
               return (
@@ -205,7 +264,7 @@ export default function ScheduleGrid({ waNumber = '6281234567890' }: ScheduleGri
         </div>
       )}
 
-      {/* Selected booking detail popup */}
+      {/* Selected booking detail */}
       {selectedBooking && (
         <div className="mt-4 p-4 rounded-2xl border-2 border-court-shuttle/30 bg-court-shuttle/5 animate-fade-up">
           <div className="flex items-start justify-between mb-3">
@@ -216,12 +275,7 @@ export default function ScheduleGrid({ waNumber = '6281234567890' }: ScheduleGri
                 {STATUS_CONFIG[selectedBooking.status].label}
               </div>
             </div>
-            <button
-              onClick={() => setSelectedBooking(null)}
-              className="text-gray-400 hover:text-gray-600 p-1"
-            >
-              ✕
-            </button>
+            <button onClick={() => setSelectedBooking(null)} className="text-gray-400 hover:text-gray-600 p-1">✕</button>
           </div>
           <div className="space-y-1.5 text-sm text-gray-600">
             <div className="flex items-center gap-2">
