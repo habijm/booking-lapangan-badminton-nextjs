@@ -1,0 +1,159 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer components {
+  /* Animated shuttle background */
+  .court-bg {
+    background-color: #F8F9F0;
+    background-image: 
+      radial-gradient(circle at 20% 50%, rgba(45, 106, 79, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(116, 198, 157, 0.07) 0%, transparent 40%),
+      radial-gradient(circle at 60% 80%, rgba(244, 162, 97, 0.05) 0%, transparent 40%);
+  }
+
+  /* Time slot cell */
+  .time-slot {
+    @apply relative rounded-xl border-2 transition-all duration-200 cursor-default;
+    min-height: 52px;
+  }
+
+  .time-slot-available {
+    @apply border-court-green/20 bg-court-green-pale/60 hover:border-court-green/40 hover:bg-court-green-pale;
+  }
+
+  .time-slot-booked {
+    @apply border-court-shuttle/40 bg-court-shuttle/10 cursor-not-allowed;
+  }
+
+  .time-slot-pending {
+    @apply border-amber-300/60 bg-amber-50 cursor-not-allowed;
+  }
+
+  .time-slot-closed {
+    @apply border-gray-200 bg-gray-50 cursor-not-allowed opacity-50;
+  }
+
+  /* Card styles */
+  .booking-card {
+    @apply bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden transition-all duration-200;
+  }
+
+  .booking-card:hover {
+    @apply shadow-card-hover;
+  }
+
+  /* Status badges */
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-court-green text-white font-semibold rounded-xl
+           hover:bg-court-green-light active:scale-95 transition-all duration-200 shadow-court
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-court-green font-semibold rounded-xl
+           border-2 border-court-green/30 hover:border-court-green hover:bg-court-green-pale 
+           active:scale-95 transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 font-medium rounded-lg
+           border border-red-200 hover:bg-red-100 active:scale-95 transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-confirm {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-court-green text-white font-medium rounded-lg
+           hover:bg-court-green-light active:scale-95 transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Form inputs */
+  .form-input {
+    @apply w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-gray-800
+           focus:outline-none focus:border-court-green focus:ring-2 focus:ring-court-green/10
+           placeholder:text-gray-400 transition-all duration-200
+           disabled:bg-gray-50 disabled:cursor-not-allowed;
+  }
+
+  .form-label {
+    @apply block text-sm font-semibold text-gray-700 mb-1.5;
+  }
+
+  /* Navigation */
+  .nav-link {
+    @apply text-sm font-medium text-gray-600 hover:text-court-green transition-colors duration-200;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f4;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #40916C;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2D6A4F;
+}
+
+/* Loading skeleton */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* Shuttle icon animation */
+@keyframes floatShuttle {
+  0%, 100% { transform: translateY(0) rotate(-15deg); }
+  50% { transform: translateY(-8px) rotate(-10deg); }
+}
+
+.shuttle-icon {
+  animation: floatShuttle 3s ease-in-out infinite;
+}
+
+/* Page transition */
+.page-enter {
+  animation: fadeUp 0.4s ease-out forwards;
+}
