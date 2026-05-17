@@ -413,10 +413,14 @@ export default function AdminDashboardPage() {
 
   // ── Form helpers ──
   const bookedForForm = allBookings.filter(b => b.booking_date === form.booking_date && b.status !== 'cancelled');
+  const isToday = form.booking_date === today;
+  const currentHour = new Date().getHours();
   const availableStartTimes = timeSlots.filter(slot => {
     const slotH = parseInt(slot.split(':')[0]);
     const endH = slotH + form.duration_hours;
     if (endH > CLOSING_HOUR) return false;
+    // Hide past slots when booking is for today
+    if (isToday && slotH <= currentHour) return false;
     const endTime = `${endH.toString().padStart(2, '0')}:00`;
     return !bookedForForm.some(b => b.start_time.slice(0,5) < endTime && b.end_time.slice(0,5) > slot);
   });
@@ -1029,29 +1033,39 @@ export default function AdminDashboardPage() {
                 <div>
                   <label className="form-label">Tanggal *</label>
                   <input type="date" value={form.booking_date} min={format(new Date(),'yyyy-MM-dd')}
-                    onChange={e => setForm(f=>({...f,booking_date:e.target.value,start_time:'08:00'}))}
+                    onChange={e => setForm(f=>({...f,booking_date:e.target.value,start_time:''}))}
                     className="form-input" required />
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="form-label">Jam Mulai *</label>
-                    <select value={form.start_time} onChange={e => setForm(f=>({...f,start_time:e.target.value}))} className="form-input" required>
-                      {timeSlots.filter(slot => parseInt(slot)+form.duration_hours <= CLOSING_HOUR).map(slot => (
-                        <option key={slot} value={slot} disabled={!availableStartTimes.includes(slot)}>
-                          {formatTime(slot)}{!availableStartTimes.includes(slot)?' (terisi)':''}
-                        </option>
-                      ))}
+                    <select
+                      value={availableStartTimes.includes(form.start_time) ? form.start_time : availableStartTimes[0] || ''}
+                      onChange={e => setForm(f=>({...f,start_time:e.target.value}))}
+                      className="form-input"
+                      required
+                    >
+                      {availableStartTimes.length === 0 ? (
+                        <option value="" disabled>Tidak ada slot tersedia</option>
+                      ) : (
+                        availableStartTimes.map(slot => (
+                          <option key={slot} value={slot}>{formatTime(slot)}</option>
+                        ))
+                      )}
                     </select>
+                    {availableStartTimes.length === 0 && (
+                      <p className="text-xs text-red-500 mt-1">Semua slot untuk tanggal ini sudah terisi atau sudah lewat.</p>
+                    )}
                   </div>
                   <div>
                     <label className="form-label">Durasi *</label>
-                    <select value={form.duration_hours} onChange={e => setForm(f=>({...f,duration_hours:parseInt(e.target.value) as 1|2}))} className="form-input">
+                    <select value={form.duration_hours} onChange={e => setForm(f=>({...f,duration_hours:parseInt(e.target.value) as 1|2, start_time:''}))} className="form-input">
                       <option value={1}>1 Jam</option>
                       <option value={2}>2 Jam</option>
                     </select>
                   </div>
                 </div>
-                {form.start_time && (
+                {form.start_time && availableStartTimes.includes(form.start_time) && (
                   <div className="p-3 rounded-xl bg-court-green-pale border border-court-green/20 text-sm text-court-green">
                     ⏰ <strong>{formatTime(form.start_time)}</strong> – <strong>{formatTime(`${(parseInt(form.start_time)+form.duration_hours).toString().padStart(2,'0')}:00`)}</strong>
                     <span className="text-court-green/70 ml-2">({form.duration_hours} jam)</span>
