@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { CourtSettings } from './config';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://your-domain.com';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL;
 
 /**
  * Generate complete metadata for the public homepage.
