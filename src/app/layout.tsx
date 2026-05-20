@@ -43,8 +43,8 @@ openGraph: {
   siteName: COURT_NAME,
   locale: 'id_ID',
 
-  title: COURT_NAME,
-  description: `Booking lapangan badminton di ${COURT_NAME} secara online.`,
+title: `${COURT_NAME} | Booking Lapangan Badminton`,
+ description: `Booking lapangan badminton di ${COURT_NAME}. Cek jadwal real-time dan pesan langsung via WhatsApp.`,
 
   images: [
     {
