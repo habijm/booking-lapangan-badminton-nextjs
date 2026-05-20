@@ -1,0 +1,56 @@
+/**
+ * COURT_CONFIG — Konfigurasi terpusat aplikasi booking.
+ * Nilai default diambil dari env vars.
+ * Nilai aktual (yang bisa diubah admin) diambil dari tabel `settings` di Supabase.
+ * Gunakan hook `useSettings()` untuk mendapatkan nilai live dari database.
+ */
+export const COURT_CONFIG = {
+  name:                   process.env.NEXT_PUBLIC_COURT_NAME     ?? 'GOR Badminton',
+  address:                process.env.NEXT_PUBLIC_COURT_ADDRESS   ?? '',
+  whatsapp:               process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '6281234567890',
+  openingHour:            8,
+  closingHour:            22,
+  pricePerHour:           30_000,
+  allowedDurations:       [1, 2, 3] as const,
+  bookingWindowDays:      14,
+  cancellationWindowHours: 2,
+} as const;
+
+export type CourtSettings = {
+  court_name:               string;
+  court_address:            string;
+  whatsapp_number:          string;
+  opening_hour:             number;
+  closing_hour:             number;
+  price_per_hour:           number;
+  booking_window_days:      number;
+  cancellation_window_hours: number;
+  announcement:             string;
+  fonnte_enabled:           boolean;
+};
+
+export const DEFAULT_SETTINGS: CourtSettings = {
+  court_name:               COURT_CONFIG.name,
+  court_address:            COURT_CONFIG.address,
+  whatsapp_number:          COURT_CONFIG.whatsapp,
+  opening_hour:             COURT_CONFIG.openingHour,
+  closing_hour:             COURT_CONFIG.closingHour,
+  price_per_hour:           COURT_CONFIG.pricePerHour,
+  booking_window_days:      COURT_CONFIG.bookingWindowDays,
+  cancellation_window_hours: COURT_CONFIG.cancellationWindowHours,
+  announcement:             '',
+  fonnte_enabled:           false,
+};
+
+export const SETTINGS_LABELS: Record<keyof CourtSettings, string> = {
+  court_name:               'Nama GOR / Lapangan',
+  court_address:            'Alamat',
+  whatsapp_number:          'Nomor WhatsApp Admin',
+  opening_hour:             'Jam Buka (0–23)',
+  closing_hour:             'Jam Tutup (0–23)',
+  price_per_hour:           'Harga per Jam (Rp)',
+  booking_window_days:      'Maks Booking ke Depan (hari)',
+  cancellation_window_hours:'Batas Pembatalan (jam sebelum)',
+  announcement:             'Pengumuman (tampil di halaman publik)',
+  fonnte_enabled:           'Aktifkan Notifikasi WA Otomatis (Fonnte)',
+};
