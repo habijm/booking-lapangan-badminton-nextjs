@@ -1,0 +1,25 @@
+{
+  "name": "GOR Badminton — Booking Online",
+  "short_name": "BookBadminton",
+  "description": "Booking lapangan badminton secara online. Cek jadwal real-time dan booking via WhatsApp.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D1F16",
+  "theme_color": "#0D1F16",
+  "orientation": "portrait-primary",
+  "lang": "id",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["sports", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Lihat Jadwal",
+      "short_name": "Jadwal",
+      "description": "Cek ketersediaan lapangan hari ini",
+      "url": "/#jadwal",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

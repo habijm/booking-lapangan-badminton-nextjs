@@ -1,31 +1,23 @@
 import { createClient } from '@supabase/supabase-js';
+import Script from 'next/script';
 import { DEFAULT_SETTINGS, CourtSettings } from '@/lib/config';
+import { generatePublicMetadata, generateStructuredData } from '@/lib/seo';
 import PublicPage from './PublicPage';
 
-// Fetch settings — works with both anon key and service role key
+// Force dynamic — settings berubah dari DB tanpa rebuild
+export const dynamic = 'force-dynamic';
+
 async function getSettings(): Promise<CourtSettings> {
   try {
-    const url  = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    // Prefer service role (bypasses RLS) but fall back to anon key
-    const key  = process.env.SUPABASE_SERVICE_ROLE_KEY
-              ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+             ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(url, key, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-
-    const { data, error } = await supabase
-      .from('settings')
-      .select('key, value');
-
-    if (error) {
-      console.error('[settings fetch]', error.message);
-      return DEFAULT_SETTINGS;
-    }
-    if (!data?.length) return DEFAULT_SETTINGS;
-
+    const { data, error } = await supabase.from('settings').select('key, value');
+    if (error || !data?.length) return DEFAULT_SETTINGS;
     const map = Object.fromEntries(data.map(r => [r.key, r.value]));
-
     return {
       court_name:                map.court_name                ?? DEFAULT_SETTINGS.court_name,
       court_address:             map.court_address             ?? DEFAULT_SETTINGS.court_address,
@@ -38,24 +30,30 @@ async function getSettings(): Promise<CourtSettings> {
       announcement:              map.announcement              ?? '',
       fonnte_enabled:            map.fonnte_enabled === 'true',
     };
-  } catch (e) {
-    console.error('[settings fetch] unexpected error:', e);
+  } catch {
     return DEFAULT_SETTINGS;
   }
 }
 
+// Metadata dinamis dari DB — dipakai Google, WhatsApp preview, dll
 export async function generateMetadata() {
   const settings = await getSettings();
-  return {
-    title: settings.court_name,
-    description: `Booking lapangan badminton ${settings.court_name}. Buka ${settings.opening_hour}:00–${settings.closing_hour}:00 WIB.`,
-  };
+  return generatePublicMetadata(settings);
 }
 
-// Force dynamic so settings are always fresh (not cached at build time)
-export const dynamic = 'force-dynamic';
-
 export default async function HomePage() {
-  const settings = await getSettings();
-  return <PublicPage settings={settings} />;
+  const settings     = await getSettings();
+  const structuredData = generateStructuredData(settings);
+
+  return (
+    <>
+      {/* JSON-LD Structured Data untuk Google Rich Results */}
+      <Script
+        id="structured-data"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <PublicPage settings={settings} />
+    </>
+  );
 }

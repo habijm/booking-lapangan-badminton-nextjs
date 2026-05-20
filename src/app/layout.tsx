@@ -1,27 +1,64 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
-// Layout metadata uses env var as default.
-// Actual court name shown in UI comes from DB settings (via useSettings / page.tsx server fetch).
+const COURT_NAME = process.env.NEXT_PUBLIC_COURT_NAME ?? 'GOR Badminton';
+const BASE_URL   = process.env.NEXT_PUBLIC_SITE_URL   ?? 'https://www.bookinglapangan.site';
+
+export const viewport: Viewport = {
+  width:              'device-width',
+  initialScale:       1,
+  maximumScale:       5,
+  themeColor:         '#0D1F16',
+  colorScheme:        'dark light',
+};
+
 export const metadata: Metadata = {
+  // Title template — halaman publik override dengan generateMetadata()
   title: {
-    default:  process.env.NEXT_PUBLIC_COURT_NAME ?? 'GOR Badminton',
-    template: `%s | ${process.env.NEXT_PUBLIC_COURT_NAME ?? 'GOR Badminton'}`,
+    default:  COURT_NAME,
+    template: `%s | ${COURT_NAME}`,
   },
-  description: 'Sistem booking lapangan badminton online. Lihat ketersediaan jadwal dan hubungi kami via WhatsApp.',
-  keywords:    ['badminton', 'lapangan badminton', 'booking lapangan', 'GOR badminton'],
-  themeColor:  '#2D6A4F',
-  
+  description: `Booking lapangan badminton di ${COURT_NAME} secara online. Cek jadwal real-time dan booking via WhatsApp.`,
+
+  // ── Icons ──────────────────────────────────────────────────────────────────
+  icons: {
+    icon: [
+      { url: '/favicon.ico',            sizes: 'any' },
+      { url: '/icon-192.png',           sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png',           sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-icon.png',         sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+  },
+
+  // ── Manifest (PWA) ─────────────────────────────────────────────────────────
+  manifest: '/manifest.json',
+
+  // ── Open Graph fallback (halaman publik override) ──────────────────────────
+  openGraph: {
+    type:     'website',
+    url:      BASE_URL,
+    siteName: COURT_NAME,
+    locale:   'id_ID',
+  },
+
+  // ── Robots default ─────────────────────────────────────────────────────────
+  robots: {
+    index:  true,
+    follow: true,
+  },
+
+  // ── Verification (isi setelah submit ke Google Search Console) ─────────────
+  verification: {
+    google: 'ixbHRTmXi2PWZjQ_eO7CLlSs8hFPxzTr-ZlY_PLAoJU',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id">
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1"/>
-        <link rel="icon" href="/favicon/favicon-dark.png" media="(prefers-color-scheme: light)" />
-        <link rel="icon" href="/favicon/favicon-light.png" media="(prefers-color-scheme: dark)" />
-      </head>
       <body className="font-body antialiased">
         {children}
       </body>
