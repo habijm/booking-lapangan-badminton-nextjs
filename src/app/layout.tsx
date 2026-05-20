@@ -37,12 +37,24 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
 
   // ── Open Graph fallback (halaman publik override) ──────────────────────────
-  openGraph: {
-    type:     'website',
-    url:      BASE_URL,
-    siteName: COURT_NAME,
-    locale:   'id_ID',
-  },
+openGraph: {
+  type: 'website',
+  url: BASE_URL,
+  siteName: COURT_NAME,
+  locale: 'id_ID',
+
+  title: COURT_NAME,
+  description: `Booking lapangan badminton di ${COURT_NAME} secara online.`,
+
+  images: [
+    {
+      url: `${BASE_URL}/og-image.png`,
+      width: 1200,
+      height: 630,
+      alt: COURT_NAME,
+    },
+  ],
+},
 
   // ── Robots default ─────────────────────────────────────────────────────────
   robots: {
