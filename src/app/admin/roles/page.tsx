@@ -173,7 +173,7 @@ export default function RolesPage() {
                         {u.email}
                         {isMe && <span className="ml-1.5 text-[10px] text-[#74C69D]/40">(Anda)</span>}
                       </div>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${cfg.bg} ${cfg.color}`} style={{borderColor:'currentColor'}}>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${cfg.bg} ${cfg.color}`} style={{borderColor:'currentColor',borderOpacity:0.2}}>
                         {cfg.label}
                       </span>
                     </div>

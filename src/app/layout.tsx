@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 const COURT_NAME = process.env.NEXT_PUBLIC_COURT_NAME ?? 'GOR Badminton';
-const BASE_URL   = process.env.NEXT_PUBLIC_SITE_URL   ?? 'https://www.bookinglapangan.site';
+const BASE_URL   = process.env.NEXT_PUBLIC_SITE_URL   ?? 'https://your-domain.com';
 
 export const viewport: Viewport = {
   width:              'device-width',
@@ -37,24 +37,12 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
 
   // ── Open Graph fallback (halaman publik override) ──────────────────────────
-openGraph: {
-  type: 'website',
-  url: BASE_URL,
-  siteName: COURT_NAME,
-  locale: 'id_ID',
-
-title: `${COURT_NAME} | Booking Lapangan Badminton`,
- description: `Booking lapangan badminton di ${COURT_NAME}. Cek jadwal real-time dan pesan langsung via WhatsApp.`,
-
-  images: [
-    {
-      url: `${BASE_URL}/og-image.jpg`,
-      width: 1200,
-      height: 630,
-      alt: COURT_NAME,
-    },
-  ],
-},
+  openGraph: {
+    type:     'website',
+    url:      BASE_URL,
+    siteName: COURT_NAME,
+    locale:   'id_ID',
+  },
 
   // ── Robots default ─────────────────────────────────────────────────────────
   robots: {
@@ -63,9 +51,9 @@ title: `${COURT_NAME} | Booking Lapangan Badminton`,
   },
 
   // ── Verification (isi setelah submit ke Google Search Console) ─────────────
-  verification: {
-    google: 'ixbHRTmXi2PWZjQ_eO7CLlSs8hFPxzTr-ZlY_PLAoJU',
-  },
+  // verification: {
+  //   google: 'PASTE_CODE_HERE',
+  // },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

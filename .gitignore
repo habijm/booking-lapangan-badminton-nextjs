@@ -13,3 +13,4 @@ fix-realtime-publication.sql
 fix-rls-policies.sql
 migration-courts.sql
 migration-settings.sql
+migration-banners.sql

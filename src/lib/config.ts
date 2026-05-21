@@ -1,20 +1,52 @@
 /**
- * COURT_CONFIG — Konfigurasi terpusat aplikasi booking.
- * Nilai default diambil dari env vars.
- * Nilai aktual (yang bisa diubah admin) diambil dari tabel `settings` di Supabase.
- * Gunakan hook `useSettings()` untuk mendapatkan nilai live dari database.
+ * COURT_CONFIG — Default values. Live values come from DB via useSettings().
  */
 export const COURT_CONFIG = {
-  name:                   process.env.NEXT_PUBLIC_COURT_NAME     ?? 'GOR Badminton',
-  address:                process.env.NEXT_PUBLIC_COURT_ADDRESS   ?? '',
-  whatsapp:               process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '6281234567890',
-  openingHour:            8,
-  closingHour:            22,
-  pricePerHour:           30_000,
-  allowedDurations:       [1, 2, 3] as const,
-  bookingWindowDays:      14,
+  name:                    process.env.NEXT_PUBLIC_COURT_NAME     ?? 'GOR Badminton',
+  address:                 process.env.NEXT_PUBLIC_COURT_ADDRESS   ?? '',
+  whatsapp:                process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '6281234567890',
+  openingHour:             8,
+  closingHour:             22,
+  pricePerHour:            30_000,
+  allowedDurations:        [1, 2, 3] as const,
+  bookingWindowDays:       14,
   cancellationWindowHours: 2,
 } as const;
+
+export type BannerType = 'promo' | 'info' | 'warning' | 'sponsor';
+
+export interface BannerConfig {
+  // Banner promo — muncul di bawah hero
+  promo_enabled:   boolean;
+  promo_type:      BannerType;
+  promo_title:     string;
+  promo_body:      string;
+  promo_cta_text:  string;
+  promo_cta_url:   string;
+  // Banner sponsor — image banner
+  sponsor_enabled: boolean;
+  sponsor_image:   string;
+  sponsor_title:   string;
+  sponsor_url:     string;
+  // Banner info — strip tipis di bawah halaman
+  info_enabled:    boolean;
+  info_text:       string;
+}
+
+export const DEFAULT_BANNERS: BannerConfig = {
+  promo_enabled:   false,
+  promo_type:      'promo',
+  promo_title:     '',
+  promo_body:      '',
+  promo_cta_text:  '',
+  promo_cta_url:   '',
+  sponsor_enabled: false,
+  sponsor_image:   '',
+  sponsor_title:   '',
+  sponsor_url:     '',
+  info_enabled:    false,
+  info_text:       '',
+};
 
 export type CourtSettings = {
   court_name:               string;
@@ -27,6 +59,8 @@ export type CourtSettings = {
   cancellation_window_hours: number;
   announcement:             string;
   fonnte_enabled:           boolean;
+  // Banners embedded in settings
+  banners:                  BannerConfig;
 };
 
 export const DEFAULT_SETTINGS: CourtSettings = {
@@ -40,9 +74,10 @@ export const DEFAULT_SETTINGS: CourtSettings = {
   cancellation_window_hours: COURT_CONFIG.cancellationWindowHours,
   announcement:             '',
   fonnte_enabled:           false,
+  banners:                  DEFAULT_BANNERS,
 };
 
-export const SETTINGS_LABELS: Record<keyof CourtSettings, string> = {
+export const SETTINGS_LABELS: Record<keyof Omit<CourtSettings,'banners'>, string> = {
   court_name:               'Nama GOR / Lapangan',
   court_address:            'Alamat',
   whatsapp_number:          'Nomor WhatsApp Admin',
@@ -51,6 +86,6 @@ export const SETTINGS_LABELS: Record<keyof CourtSettings, string> = {
   price_per_hour:           'Harga per Jam (Rp)',
   booking_window_days:      'Maks Booking ke Depan (hari)',
   cancellation_window_hours:'Batas Pembatalan (jam sebelum)',
-  announcement:             'Pengumuman (tampil di halaman publik)',
-  fonnte_enabled:           'Aktifkan Notifikasi WA Otomatis (Fonnte)',
+  announcement:             'Pengumuman (tampil di navbar)',
+  fonnte_enabled:           'Aktifkan Notifikasi WA (Fonnte)',
 };
