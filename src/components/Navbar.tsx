@@ -56,6 +56,14 @@ export default function Navbar({ settings }: Props) {
                 className={`text-sm font-medium transition-colors hover:text-court-green ${scrolled ? 'text-gray-600' : 'text-white/80'}`}>
                 Cara Booking
               </a>
+              <a href="/events"
+                className={`text-sm font-medium transition-colors hover:text-court-green ${scrolled ? 'text-gray-600' : 'text-white/80'}`}>
+                🏆 Event
+              </a>
+              <a href="/memberships"
+                className={`text-sm font-medium transition-colors hover:text-court-green ${scrolled ? 'text-gray-600' : 'text-white/80'}`}>
+                🎫 Langganan
+              </a>
               <a href={waLink} target="_blank" rel="noopener noreferrer"
                 className="btn-primary py-2 px-4 text-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-current">
@@ -94,6 +102,18 @@ export default function Navbar({ settings }: Props) {
                   scrolled ? 'text-gray-700 hover:bg-court-green-pale' : 'text-white/80 hover:bg-white/10'
                 }`}>
                 ℹ️ Cara Booking
+              </a>
+              <a href="/events" onClick={() => setMenuOpen(false)}
+                className={`block px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                  scrolled ? 'text-gray-700 hover:bg-court-green-pale' : 'text-white/80 hover:bg-white/10'
+                }`}>
+                🏆 Event & Turnamen
+              </a>
+              <a href="/memberships" onClick={() => setMenuOpen(false)}
+                className={`block px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                  scrolled ? 'text-gray-700 hover:bg-court-green-pale' : 'text-white/80 hover:bg-white/10'
+                }`}>
+                🎫 Paket Langganan
               </a>
               <a href={waLink} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 mx-4 px-4 py-2.5 text-sm font-medium text-white bg-court-green rounded-lg">

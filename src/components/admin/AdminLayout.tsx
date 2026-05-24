@@ -15,6 +15,8 @@ interface Props {
 const NAV_ITEMS = [
   { href: '/admin/dashboard', label: 'Dashboard',  icon: '📊' },
   { href: '/admin/courts',    label: 'Lapangan',   icon: '🏟️' },
+  { href: '/admin/events',       label: 'Event',      icon: '🏆' },
+  { href: '/admin/memberships',  label: 'Langganan',  icon: '🎫' },
   { href: '/admin/settings',  label: 'Pengaturan', icon: '⚙️' },
   { href: '/admin/roles',     label: 'Roles',      icon: '👥' },
 ];
@@ -26,6 +28,8 @@ export function AdminLayout({ children, courtName = 'GOR Badminton', pendingCoun
   const visibleNav = NAV_ITEMS.filter(item => {
     if (item.href === '/admin/settings') return can('settings');
     if (item.href === '/admin/courts')   return can('courts');
+    if (item.href === '/admin/events')      return can('confirm');
+    if (item.href === '/admin/memberships') return can('confirm'); // operator+ can manage events
     if (item.href === '/admin/roles')    return can('roles');
     return true;
   });

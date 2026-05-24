@@ -1,9 +1,12 @@
+'use client';
+
 import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';
 import ScheduleGrid from '@/components/ScheduleGrid';
 import { BannerPromo } from '@/components/public/BannerPromo';
 import { BannerSponsor } from '@/components/public/BannerSponsor';
 import { BannerInfo } from '@/components/public/BannerInfo';
+import { EventsPreview } from '@/components/public/EventsPreview';
 import { CourtSettings } from '@/lib/config';
 
 interface Props { settings: CourtSettings }
@@ -103,7 +106,10 @@ export default function PublicPage({ settings }: Props) {
         </div>
       </section>
 
-      {/* ── 6. Banner Info strip (tipis, tidak mengganggu) ── */}
+      {/* ── 6. Events Preview ── */}
+      <EventsPreview waNumber={settings.whatsapp_number} />
+
+      {/* ── 7. Banner Info strip (tipis, tidak mengganggu) ── */}
       <BannerInfo banners={banners} />
 
       {/* ── 7. Footer ── */}
