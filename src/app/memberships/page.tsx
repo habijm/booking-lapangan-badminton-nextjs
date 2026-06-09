@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { DEFAULT_SETTINGS, CourtSettings } from '@/lib/config';
+import { DEFAULT_SETTINGS, CourtSettings, parseClosedDates } from '@/lib/config';
 import { MembershipPlan } from '@/types/booking';
 import MembershipsPublicPage from './MembershipsPublicPage';
 
@@ -27,6 +27,7 @@ async function getData(): Promise<{ settings: CourtSettings; plans: MembershipPl
     cancellation_window_hours:Number(map.cancellation_window_hours ?? DEFAULT_SETTINGS.cancellation_window_hours),
     announcement:             map.announcement             ?? '',
     fonnte_enabled:           map.fonnte_enabled === 'true',
+    closed_dates:             parseClosedDates(map.closed_dates),
     banners:                  DEFAULT_SETTINGS.banners,
   };
   return { settings, plans: (plansData || []) as MembershipPlan[] };

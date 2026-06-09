@@ -57,7 +57,7 @@ function textToClosedDates(text: string): string {
     .split('\n')
     .map(d => d.trim())
     .filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
-  return JSON.stringify([...new Set(dates)].sort());
+  return JSON.stringify(Array.from(new Set(dates)).sort());
 }
 
 export default function SettingsPage() {
