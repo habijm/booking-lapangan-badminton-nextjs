@@ -34,32 +34,9 @@ async function getData(): Promise<{ settings: CourtSettings; plans: MembershipPl
 
 export async function generateMetadata() {
   const { settings } = await getData();
-  const title = `Paket Langganan | ${settings.court_name}`;
-  const description = `Paket langganan bulanan lapangan badminton ${settings.court_name}. Hemat lebih banyak dengan berlangganan.`;
   return {
-    title,
-    description,
-    openGraph: {
-      type: 'website',
-      title,
-      description,
-      siteName: settings.court_name,
-      locale: 'id_ID',
-      images: [
-        {
-          url: '/og-image.png',
-          width: 1200,
-          height: 630,
-          alt: `${settings.court_name} — Paket Langganan`,
-        },
-      ],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      images: ['/og-image.png'],
-    },
+    title: `Paket Langganan | ${settings.court_name}`,
+    description: `Paket langganan bulanan lapangan badminton ${settings.court_name}. Hemat lebih banyak dengan berlangganan.`,
   };
 }
 

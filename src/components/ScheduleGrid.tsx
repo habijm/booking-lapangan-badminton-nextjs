@@ -10,7 +10,6 @@ import { CourtSettings } from '@/lib/config';
 interface Props { settings: CourtSettings }
 type RealtimeStatus = 'connecting' | 'live' | 'polling' | 'error';
 
-// ── Slot visual config ────────────────────────────────────────────────────────
 const SLOT_STYLES = {
   available: {
     wrapper: 'border-2 border-[#40916C] bg-gradient-to-br from-[#1a3d2b] to-[#0f2a1a] hover:from-[#1e4a32] hover:to-[#122f1d] cursor-pointer active:scale-95 transition-all duration-150 shadow-sm shadow-[#40916C]/20 group',
@@ -40,6 +39,13 @@ const SLOT_STYLES = {
     icon:     '–',
     iconColor:'text-white/10',
   },
+  closed: {
+    wrapper: 'border border-white/8 bg-white/[0.02] cursor-not-allowed',
+    time:     'text-white/20 font-display',
+    sub:      'text-white/10',
+    icon:     '🚫',
+    iconColor:'text-white/15',
+  },
 };
 
 export default function ScheduleGrid({ settings }: Props) {
@@ -57,8 +63,12 @@ export default function ScheduleGrid({ settings }: Props) {
 
   const timeSlots  = generateTimeSlots(settings.opening_hour, settings.closing_hour);
   const waNumber   = settings.whatsapp_number;
+  const closedDates = settings.closed_dates ?? [];
 
   useEffect(() => { setIsMounted(true); }, []);
+
+  // Is the currently-selected date a closure date?
+  const isDateClosed = closedDates.includes(selectedDate);
 
   // Load courts
   useEffect(() => {
@@ -107,7 +117,6 @@ export default function ScheduleGrid({ settings }: Props) {
     return () => { supabase.removeChannel(sub); if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; } };
   }, [selectedDate, selectedCourtId, courtsLoading, fetchBookings]);
 
-  // Derived
   const activeCourt    = courts.find(c => c.id === selectedCourtId);
   const pricePerHour   = activeCourt?.price_per_hour ?? settings.price_per_hour;
   const confirmedCount = bookings.filter(b => b.status === 'confirmed').length;
@@ -118,7 +127,15 @@ export default function ScheduleGrid({ settings }: Props) {
   const windowDays  = Math.max(settings.booking_window_days, 1);
   const dateOptions = Array.from({ length: windowDays }, (_, i) => {
     const date = addDays(new Date(), i);
-    return { value: format(date, 'yyyy-MM-dd'), label: format(date, 'EEE', { locale: id }), dayNum: format(date, 'd'), month: format(date, 'MMM', { locale: id }), isToday: isToday(date) };
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return {
+      value:    dateStr,
+      label:    format(date, 'EEE', { locale: id }),
+      dayNum:   format(date, 'd'),
+      month:    format(date, 'MMM', { locale: id }),
+      isToday:  isToday(date),
+      isClosed: closedDates.includes(dateStr),
+    };
   });
 
   const makeWALink = (slot: string) => {
@@ -187,194 +204,224 @@ export default function ScheduleGrid({ settings }: Props) {
         <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
           {dateOptions.map(d => (
             <button key={d.value} onClick={() => { setSelectedDate(d.value); setSelectedBooking(null); }}
-              className={`flex-shrink-0 flex flex-col items-center px-3 py-2.5 rounded-xl transition-all min-w-[58px] border-2 ${
+              className={`flex-shrink-0 flex flex-col items-center px-3 py-2.5 rounded-xl transition-all min-w-[58px] border-2 relative ${
                 selectedDate === d.value
-                  ? 'bg-[#40916C] border-[#40916C] text-white shadow-lg shadow-[#40916C]/30'
-                  : 'border-[#52B788]/15 text-[#74C69D]/50 hover:border-[#52B788]/40 hover:text-[#74C69D] hover:bg-[#52B788]/5'
+                  ? d.isClosed
+                    ? 'bg-red-900/40 border-red-500/50 text-white'
+                    : 'bg-[#40916C] border-[#40916C] text-white shadow-lg shadow-[#40916C]/30'
+                  : d.isClosed
+                    ? 'border-red-500/20 text-red-400/40 hover:border-red-500/40'
+                    : 'border-[#52B788]/15 text-[#74C69D]/50 hover:border-[#52B788]/40 hover:text-[#74C69D] hover:bg-[#52B788]/5'
               }`}>
-              <span className={`text-[10px] font-bold uppercase tracking-wide ${selectedDate===d.value?'text-white/70':'text-[#74C69D]/30'}`}>{d.label}</span>
+              <span className={`text-[10px] font-bold uppercase tracking-wide ${
+                selectedDate === d.value ? (d.isClosed ? 'text-red-300/70' : 'text-white/70') : d.isClosed ? 'text-red-400/40' : 'text-[#74C69D]/30'
+              }`}>{d.label}</span>
               <span className="text-xl font-bold font-display leading-tight">{d.dayNum}</span>
-              <span className={`text-[10px] ${selectedDate===d.value?'text-white/60':'text-[#74C69D]/30'}`}>{d.month}</span>
-              {d.isToday && <span className={`text-[9px] font-bold mt-0.5 ${selectedDate===d.value?'text-white/90':'text-[#52B788]'}`}>Hari ini</span>}
+              <span className={`text-[10px] ${selectedDate === d.value ? (d.isClosed ? 'text-red-300/60' : 'text-white/60') : d.isClosed ? 'text-red-400/30' : 'text-[#74C69D]/30'}`}>{d.month}</span>
+              {d.isToday && <span className={`text-[9px] font-bold mt-0.5 ${selectedDate === d.value ? 'text-white/90' : d.isClosed ? 'text-red-400/40' : 'text-[#52B788]'}`}>Hari ini</span>}
+              {d.isClosed && <span className="text-[8px] font-bold mt-0.5 text-red-400/70">TUTUP</span>}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── Stats strip ── */}
-      <div className="grid grid-cols-3 gap-2.5 mb-5">
-        {[
-          { label:'Tersedia',   value: availableSlots,         bg:'border-[#40916C]/50 bg-[#40916C]/10',   val:'text-[#74C69D]',  dot:'bg-[#40916C]' },
-          { label:'Pending',    value: pendingCount   || '—',  bg:'border-amber-500/40 bg-amber-500/8',    val:'text-amber-400',  dot:'bg-amber-500' },
-          { label:'Terbooking', value: confirmedCount || '—',  bg:'border-red-500/40   bg-red-500/8',      val:'text-red-400',    dot:'bg-red-500'   },
-        ].map(s => (
-          <div key={s.label} className={`rounded-xl p-3 text-center border-2 ${s.bg}`}>
-            <div className="flex items-center justify-center gap-1.5 mb-0.5">
-              <span className={`w-2 h-2 rounded-full ${s.dot}`}/>
-              <span className={`text-2xl font-bold font-display ${s.val}`}>{s.value}</span>
+      {/* ── CLOSURE BANNER ── */}
+      {isDateClosed && (
+        <div className="mb-5 rounded-2xl border border-red-500/30 bg-gradient-to-r from-red-950/60 to-red-900/40 p-6 text-center">
+          <div className="text-4xl mb-3">🚫</div>
+          <h3 className="font-bold text-white font-display text-lg mb-1">Lapangan Tutup</h3>
+          <p className="text-red-300/70 text-sm">
+            Lapangan tidak beroperasi pada{' '}
+            <strong className="text-red-200">
+              {format(new Date(selectedDate + 'T00:00:00'), 'EEEE, d MMMM yyyy', { locale: id })}
+            </strong>.
+          </p>
+          <p className="text-red-400/50 text-xs mt-2">
+            Silakan pilih tanggal lain atau hubungi admin untuk informasi lebih lanjut.
+          </p>
+          <a
+            href={`https://wa.me/${waNumber}?text=${encodeURIComponent('Halo, saya ingin tanya tentang jadwal lapangan.')}`}
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 rounded-xl bg-[#40916C] hover:bg-[#52B788] text-white font-bold text-sm transition-all active:scale-95">
+            💬 Hubungi Admin
+          </a>
+        </div>
+      )}
+
+      {/* ── Stats strip (hide when closed) ── */}
+      {!isDateClosed && (
+        <div className="grid grid-cols-3 gap-2.5 mb-5">
+          {[
+            { label:'Tersedia',   value: availableSlots,         bg:'border-[#40916C]/50 bg-[#40916C]/10',   val:'text-[#74C69D]',  dot:'bg-[#40916C]' },
+            { label:'Pending',    value: pendingCount   || '—',  bg:'border-amber-500/40 bg-amber-500/8',    val:'text-amber-400',  dot:'bg-amber-500' },
+            { label:'Terbooking', value: confirmedCount || '—',  bg:'border-red-500/40   bg-red-500/8',      val:'text-red-400',    dot:'bg-red-500'   },
+          ].map(s => (
+            <div key={s.label} className={`rounded-xl p-3 text-center border-2 ${s.bg}`}>
+              <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                <span className={`w-2 h-2 rounded-full ${s.dot}`}/>
+                <span className={`text-2xl font-bold font-display ${s.val}`}>{s.value}</span>
+              </div>
+              <div className={`text-[11px] font-semibold ${s.val} opacity-80`}>{s.label}</div>
             </div>
-            <div className={`text-[11px] font-semibold ${s.val} opacity-80`}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Legend ── */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-5">
-        {[
-          { color:'bg-[#40916C]',   border:'border-[#40916C]',    label:'Tersedia — klik untuk booking' },
-          { color:'bg-red-500',     border:'border-red-500/50',   label:'Sudah dipesan'                 },
-          { color:'bg-amber-500',   border:'border-amber-500/50', label:'Menunggu konfirmasi'           },
-          { color:'bg-white/10',    border:'border-white/10',     label:'Sudah lewat'                   },
-        ].map(l => (
-          <span key={l.label} className="flex items-center gap-1.5 text-[11px] text-[#74C69D]/50">
-            <span className={`w-2.5 h-2.5 rounded-sm border ${l.border} ${l.color}`}/>
-            {l.label}
-          </span>
-        ))}
-        <span className="ml-auto text-xs font-bold text-[#52B788]">
-          Rp {pricePerHour.toLocaleString('id')}/jam
-          {courts.length > 1 && activeCourt && <span className="text-[#74C69D]/40 font-normal ml-1">· {activeCourt.name}</span>}
-        </span>
-      </div>
-
-      {/* ── Time slots grid ── */}
-      {loading || courtsLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-          {Array.from({ length: settings.closing_hour - settings.opening_hour }).map((_, i) => (
-            <div key={i} className="h-[72px] rounded-xl animate-pulse border border-[#52B788]/5"
-              style={{ background: 'rgba(82,183,136,0.04)' }}/>
           ))}
         </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-          {timeSlots.map(slot => {
-            const booked = isSlotBooked(slot, bookings);
-            const isPast = isBefore(new Date(`${selectedDate}T${slot}`), new Date());
+      )}
 
-            // ── BOOKED (confirmed or pending) ──────────────────────────────
-            if (booked) {
-              const isConfirmed = booked.status === 'confirmed';
-              const s = isConfirmed ? SLOT_STYLES.confirmed : SLOT_STYLES.pending;
-              return (
-                <button key={slot} onClick={() => setSelectedBooking(selectedBooking?.id === booked.id ? null : booked)}
-                  className={`rounded-xl px-3 py-2.5 text-left relative overflow-hidden ${s.wrapper}`}>
-                  {/* Time */}
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-xs ${s.time}`}>{slot.slice(0,5)}</span>
-                    <span className={`text-base leading-none ${s.iconColor}`}>{s.icon}</span>
-                  </div>
-                  {/* End time */}
-                  <div className={`text-[10px] ${s.sub}`}>
-                    s/d {booked.end_time.slice(0,5)}
-                  </div>
-                  {/* Status label */}
-                  <div className={`text-[10px] font-bold mt-1 ${s.sub}`}>
-                    {isConfirmed ? 'TERISI' : 'PENDING'}
-                  </div>
-                  {/* Selected highlight */}
-                  {selectedBooking?.id === booked.id && (
-                    <div className="absolute inset-0 ring-2 ring-white/20 rounded-xl pointer-events-none"/>
-                  )}
-                </button>
-              );
-            }
-
-            // ── PAST ────────────────────────────────────────────────────────
-            if (isPast) {
-              const s = SLOT_STYLES.past;
-              return (
-                <div key={slot} className={`rounded-xl px-3 py-2.5 ${s.wrapper}`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-xs ${s.time}`}>{slot.slice(0,5)}</span>
-                    <span className={`text-sm ${s.iconColor}`}>{s.icon}</span>
-                  </div>
-                  <div className={`text-[10px] ${s.sub}`}>Sudah lewat</div>
-                </div>
-              );
-            }
-
-            // ── AVAILABLE ───────────────────────────────────────────────────
-            const s = SLOT_STYLES.available;
-            return (
-              <a key={slot} href={makeWALink(slot)} target="_blank" rel="noopener noreferrer"
-                className={`rounded-xl px-3 py-2.5 block no-underline ${s.wrapper}`}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className={`text-xs ${s.time}`}>{slot.slice(0,5)}</span>
-                  <span className={`text-base leading-none ${s.iconColor} group-hover:scale-110 transition-transform`}>{s.icon}</span>
-                </div>
-                <div className={`text-[10px] ${s.sub}`}>
-                  1–{Math.min(2, settings.closing_hour - parseInt(slot))} jam
-                </div>
-                <div className="text-[10px] font-bold text-[#52B788]/80 mt-1 group-hover:text-[#74C69D] transition-colors">
-                  BOOKING WA
-                </div>
-              </a>
-            );
-          })}
+      {/* ── Legend (hide when closed) ── */}
+      {!isDateClosed && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-5">
+          {[
+            { color:'bg-[#40916C]',   border:'border-[#40916C]',    label:'Tersedia — klik untuk booking' },
+            { color:'bg-red-500',     border:'border-red-500/50',   label:'Sudah dipesan'                 },
+            { color:'bg-amber-500',   border:'border-amber-500/50', label:'Menunggu konfirmasi'           },
+            { color:'bg-white/10',    border:'border-white/10',     label:'Sudah lewat'                   },
+          ].map(l => (
+            <span key={l.label} className="flex items-center gap-1.5 text-[11px] text-[#74C69D]/50">
+              <span className={`w-2.5 h-2.5 rounded-sm border ${l.border} ${l.color}`}/>
+              {l.label}
+            </span>
+          ))}
+          <span className="ml-auto text-xs font-bold text-[#52B788]">
+            Rp {pricePerHour.toLocaleString('id')}/jam
+            {courts.length > 1 && activeCourt && <span className="text-[#74C69D]/40 font-normal ml-1">· {activeCourt.name}</span>}
+          </span>
         </div>
       )}
 
-      {/* ── Selected booking detail popup ── */}
-      {selectedBooking && (
-        <div className="mt-4 rounded-2xl border border-[#52B788]/20 p-4 animate-fade-up"
-          style={{ background: 'rgba(13,43,28,0.95)', backdropFilter: 'blur(8px)' }}>
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <h3 className="font-bold text-white font-display">{selectedBooking.customer_name}</h3>
-              <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border mt-1 ${
-                selectedBooking.status === 'confirmed'
-                  ? 'bg-[#52B788]/15 border-[#52B788]/30 text-[#74C69D]'
-                  : 'bg-amber-500/15 border-amber-500/30 text-amber-400'
-              }`}>
-                <span className="w-1.5 h-1.5 rounded-full bg-current"/>
-                {selectedBooking.status === 'confirmed' ? 'Dikonfirmasi' : 'Menunggu Konfirmasi'}
-              </span>
+      {/* ── Time slots grid ── */}
+      {!isDateClosed && (
+        <>
+          {loading || courtsLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+              {Array.from({ length: settings.closing_hour - settings.opening_hour }).map((_, i) => (
+                <div key={i} className="h-[72px] rounded-xl animate-pulse border border-[#52B788]/5"
+                  style={{ background: 'rgba(82,183,136,0.04)' }}/>
+              ))}
             </div>
-            <button onClick={() => setSelectedBooking(null)}
-              className="text-[#74C69D]/40 hover:text-[#74C69D] p-1 transition-colors">✕</button>
-          </div>
-          <div className="space-y-2 text-sm text-[#A8D5BC]/80">
-            <div className="flex items-center gap-2.5">
-              <span className="text-base">⏰</span>
-              <span><strong className="text-white">{selectedBooking.start_time.slice(0,5)}</strong> – <strong className="text-white">{selectedBooking.end_time.slice(0,5)}</strong> ({selectedBooking.duration_hours} jam)</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className="text-base">💰</span>
-              <span>Rp <strong className="text-white">{(selectedBooking.duration_hours * pricePerHour).toLocaleString('id')}</strong></span>
-            </div>
-            {selectedBooking.court && courts.length > 1 && (
-              <div className="flex items-center gap-2.5">
-                <span className="text-base">🏟️</span>
-                <span>{selectedBooking.court.name}</span>
-              </div>
-            )}
-            {selectedBooking.notes && (
-              <div className="flex items-start gap-2.5">
-                <span className="text-base">📝</span>
-                <span className="text-[#74C69D]/60">{selectedBooking.notes}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+              {timeSlots.map(slot => {
+                const booked = isSlotBooked(slot, bookings);
+                const isPast = isBefore(new Date(`${selectedDate}T${slot}`), new Date());
 
-      {/* ── WA CTA ── */}
-      <div className="mt-5 rounded-2xl border border-[#40916C]/40 p-5 text-center"
-        style={{ background: 'linear-gradient(135deg, #0d2b1a 0%, #0d1f16 100%)' }}>
-        <p className="text-sm font-medium text-[#A8D5BC]/80 mb-3">
-          Klik slot <span className="text-[#52B788] font-bold">hijau ✓</span> untuk langsung booking via WhatsApp
-          {activeCourt && courts.length > 1 && <span className="text-[#74C69D]/50"> · {activeCourt.name}</span>}
-        </p>
-        <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(`Halo, saya ingin booking lapangan badminton.${activeCourt && courts.length > 1 ? `\n🏟️ Lapangan: ${activeCourt.name}` : ''}\n\nMohon info ketersediaan jadwal.`)}`}
-          target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-[#40916C] hover:bg-[#52B788] text-white font-bold rounded-xl text-sm transition-all duration-200 active:scale-95 shadow-lg shadow-[#40916C]/30">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.556 4.116 1.528 5.847L0 24l6.337-1.508A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.807 9.807 0 01-5.001-1.366l-.36-.213-3.727.977.995-3.635-.234-.373A9.773 9.773 0 012.182 12C2.182 6.58 6.58 2.182 12 2.182S21.818 6.58 21.818 12 17.42 21.818 12 21.818z"/>
-          </svg>
-          Chat WhatsApp Sekarang
-        </a>
-      </div>
+                if (booked) {
+                  const isConfirmed = booked.status === 'confirmed';
+                  const s = isConfirmed ? SLOT_STYLES.confirmed : SLOT_STYLES.pending;
+                  return (
+                    <button key={slot} onClick={() => setSelectedBooking(selectedBooking?.id === booked.id ? null : booked)}
+                      className={`rounded-xl px-3 py-2.5 text-left relative overflow-hidden ${s.wrapper}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-xs ${s.time}`}>{slot.slice(0,5)}</span>
+                        <span className={`text-base leading-none ${s.iconColor}`}>{s.icon}</span>
+                      </div>
+                      <div className={`text-[10px] ${s.sub}`}>s/d {booked.end_time.slice(0,5)}</div>
+                      <div className={`text-[10px] font-bold mt-1 ${s.sub}`}>
+                        {isConfirmed ? 'TERISI' : 'PENDING'}
+                      </div>
+                      {selectedBooking?.id === booked.id && (
+                        <div className="absolute inset-0 ring-2 ring-white/20 rounded-xl pointer-events-none"/>
+                      )}
+                    </button>
+                  );
+                }
+
+                if (isPast) {
+                  const s = SLOT_STYLES.past;
+                  return (
+                    <div key={slot} className={`rounded-xl px-3 py-2.5 ${s.wrapper}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-xs ${s.time}`}>{slot.slice(0,5)}</span>
+                        <span className={`text-sm ${s.iconColor}`}>{s.icon}</span>
+                      </div>
+                      <div className={`text-[10px] ${s.sub}`}>Sudah lewat</div>
+                    </div>
+                  );
+                }
+
+                const s = SLOT_STYLES.available;
+                return (
+                  <a key={slot} href={makeWALink(slot)} target="_blank" rel="noopener noreferrer"
+                    className={`rounded-xl px-3 py-2.5 block no-underline ${s.wrapper}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs ${s.time}`}>{slot.slice(0,5)}</span>
+                      <span className={`text-base leading-none ${s.iconColor} group-hover:scale-110 transition-transform`}>{s.icon}</span>
+                    </div>
+                    <div className={`text-[10px] ${s.sub}`}>
+                      1–{Math.min(2, settings.closing_hour - parseInt(slot))} jam
+                    </div>
+                    <div className="text-[10px] font-bold text-[#52B788]/80 mt-1 group-hover:text-[#74C69D] transition-colors">
+                      BOOKING WA
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ── Selected booking popup (NO cost shown) ── */}
+          {selectedBooking && (
+            <div className="mt-4 rounded-2xl border border-[#52B788]/20 p-4 animate-fade-up"
+              style={{ background: 'rgba(13,43,28,0.95)', backdropFilter: 'blur(8px)' }}>
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h3 className="font-bold text-white font-display">{selectedBooking.customer_name}</h3>
+                  <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border mt-1 ${
+                    selectedBooking.status === 'confirmed'
+                      ? 'bg-[#52B788]/15 border-[#52B788]/30 text-[#74C69D]'
+                      : 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                  }`}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-current"/>
+                    {selectedBooking.status === 'confirmed' ? 'Dikonfirmasi' : 'Menunggu Konfirmasi'}
+                  </span>
+                </div>
+                <button onClick={() => setSelectedBooking(null)}
+                  className="text-[#74C69D]/40 hover:text-[#74C69D] p-1 transition-colors">✕</button>
+              </div>
+              <div className="space-y-2 text-sm text-[#A8D5BC]/80">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-base">⏰</span>
+                  <span>
+                    <strong className="text-white">{selectedBooking.start_time.slice(0,5)}</strong>
+                    {' – '}
+                    <strong className="text-white">{selectedBooking.end_time.slice(0,5)}</strong>
+                    {' '}({selectedBooking.duration_hours} jam)
+                  </span>
+                </div>
+                {selectedBooking.court && courts.length > 1 && (
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-base">🏟️</span>
+                    <span>{selectedBooking.court.name}</span>
+                  </div>
+                )}
+                {selectedBooking.notes && (
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-base">📝</span>
+                    <span className="text-[#74C69D]/60">{selectedBooking.notes}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── WA CTA ── */}
+          <div className="mt-5 rounded-2xl border border-[#40916C]/40 p-5 text-center"
+            style={{ background: 'linear-gradient(135deg, #0d2b1a 0%, #0d1f16 100%)' }}>
+            <p className="text-sm font-medium text-[#A8D5BC]/80 mb-3">
+              Klik slot <span className="text-[#52B788] font-bold">hijau ✓</span> untuk langsung booking via WhatsApp
+              {activeCourt && courts.length > 1 && <span className="text-[#74C69D]/50"> · {activeCourt.name}</span>}
+            </p>
+            <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(`Halo, saya ingin booking lapangan badminton.${activeCourt && courts.length > 1 ? `\n🏟️ Lapangan: ${activeCourt.name}` : ''}\n\nMohon info ketersediaan jadwal.`)}`}
+              target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[#40916C] hover:bg-[#52B788] text-white font-bold rounded-xl text-sm transition-all duration-200 active:scale-95 shadow-lg shadow-[#40916C]/30">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.556 4.116 1.528 5.847L0 24l6.337-1.508A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.807 9.807 0 01-5.001-1.366l-.36-.213-3.727.977.995-3.635-.234-.373A9.773 9.773 0 012.182 12C2.182 6.58 6.58 2.182 12 2.182S21.818 6.58 21.818 12 17.42 21.818 12 21.818z"/>
+              </svg>
+              Chat WhatsApp Sekarang
+            </a>
+          </div>
+        </>
+      )}
     </div>
   );
 }

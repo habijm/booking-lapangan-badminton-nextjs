@@ -16,19 +16,16 @@ export const COURT_CONFIG = {
 export type BannerType = 'promo' | 'info' | 'warning' | 'sponsor';
 
 export interface BannerConfig {
-  // Banner promo — muncul di bawah hero
   promo_enabled:   boolean;
   promo_type:      BannerType;
   promo_title:     string;
   promo_body:      string;
   promo_cta_text:  string;
   promo_cta_url:   string;
-  // Banner sponsor — image banner
   sponsor_enabled: boolean;
   sponsor_image:   string;
   sponsor_title:   string;
   sponsor_url:     string;
-  // Banner info — strip tipis di bawah halaman
   info_enabled:    boolean;
   info_text:       string;
 }
@@ -59,7 +56,8 @@ export type CourtSettings = {
   cancellation_window_hours: number;
   announcement:             string;
   fonnte_enabled:           boolean;
-  // Banners embedded in settings
+  /** Dates (YYYY-MM-DD) when the court is closed — slots disabled on public schedule */
+  closed_dates:             string[];
   banners:                  BannerConfig;
 };
 
@@ -74,10 +72,11 @@ export const DEFAULT_SETTINGS: CourtSettings = {
   cancellation_window_hours: COURT_CONFIG.cancellationWindowHours,
   announcement:             '',
   fonnte_enabled:           false,
+  closed_dates:             [],
   banners:                  DEFAULT_BANNERS,
 };
 
-export const SETTINGS_LABELS: Record<keyof Omit<CourtSettings,'banners'>, string> = {
+export const SETTINGS_LABELS: Record<keyof Omit<CourtSettings, 'banners' | 'closed_dates'>, string> = {
   court_name:               'Nama GOR / Lapangan',
   court_address:            'Alamat',
   whatsapp_number:          'Nomor WhatsApp Admin',
@@ -89,3 +88,14 @@ export const SETTINGS_LABELS: Record<keyof Omit<CourtSettings,'banners'>, string
   announcement:             'Pengumuman (tampil di navbar)',
   fonnte_enabled:           'Aktifkan Notifikasi WA (Fonnte)',
 };
+
+/** Safe JSON parse for closed_dates stored as string in DB */
+export function parseClosedDates(raw: string | undefined | null): string[] {
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.filter((d): d is string => typeof d === 'string') : [];
+  } catch {
+    return [];
+  }
+}

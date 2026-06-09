@@ -2,62 +2,42 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
 import { useSettings } from '@/hooks/useSettings';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminCard, AdminSectionHeader, AdminButton } from '@/components/admin/AdminCard';
-import { DEFAULT_SETTINGS, SETTINGS_LABELS, CourtSettings, BannerType, parseClosedDates } from '@/lib/config';
+import { DEFAULT_SETTINGS, SETTINGS_LABELS, CourtSettings, BannerType } from '@/lib/config';
 
 type SettingsFlat = Record<string, string>;
 
 function toFlat(s: CourtSettings): SettingsFlat {
   return {
-    court_name:                s.court_name,
-    court_address:             s.court_address,
-    whatsapp_number:           s.whatsapp_number,
-    opening_hour:              String(s.opening_hour),
-    closing_hour:              String(s.closing_hour),
-    price_per_hour:            String(s.price_per_hour),
-    booking_window_days:       String(s.booking_window_days),
-    cancellation_window_hours: String(s.cancellation_window_hours),
-    announcement:              s.announcement,
-    fonnte_enabled:            String(s.fonnte_enabled),
-    closed_dates:              JSON.stringify(s.closed_dates ?? []),
+    court_name:               s.court_name,
+    court_address:            s.court_address,
+    whatsapp_number:          s.whatsapp_number,
+    opening_hour:             String(s.opening_hour),
+    closing_hour:             String(s.closing_hour),
+    price_per_hour:           String(s.price_per_hour),
+    booking_window_days:      String(s.booking_window_days),
+    cancellation_window_hours:String(s.cancellation_window_hours),
+    announcement:             s.announcement,
+    fonnte_enabled:           String(s.fonnte_enabled),
     // Banners
-    banner_promo_enabled:      String(s.banners.promo_enabled),
-    banner_promo_type:         s.banners.promo_type,
-    banner_promo_title:        s.banners.promo_title,
-    banner_promo_body:         s.banners.promo_body,
-    banner_promo_cta_text:     s.banners.promo_cta_text,
-    banner_promo_cta_url:      s.banners.promo_cta_url,
-    banner_sponsor_enabled:    String(s.banners.sponsor_enabled),
-    banner_sponsor_image:      s.banners.sponsor_image,
-    banner_sponsor_title:      s.banners.sponsor_title,
-    banner_sponsor_url:        s.banners.sponsor_url,
-    banner_info_enabled:       String(s.banners.info_enabled),
-    banner_info_text:          s.banners.info_text,
+    banner_promo_enabled:     String(s.banners.promo_enabled),
+    banner_promo_type:        s.banners.promo_type,
+    banner_promo_title:       s.banners.promo_title,
+    banner_promo_body:        s.banners.promo_body,
+    banner_promo_cta_text:    s.banners.promo_cta_text,
+    banner_promo_cta_url:     s.banners.promo_cta_url,
+    banner_sponsor_enabled:   String(s.banners.sponsor_enabled),
+    banner_sponsor_image:     s.banners.sponsor_image,
+    banner_sponsor_title:     s.banners.sponsor_title,
+    banner_sponsor_url:       s.banners.sponsor_url,
+    banner_info_enabled:      String(s.banners.info_enabled),
+    banner_info_text:         s.banners.info_text,
   };
-}
-
-/** Render closed_dates JSON → human-readable lines for textarea */
-function closedDatesToText(raw: string): string {
-  try {
-    const arr = JSON.parse(raw || '[]');
-    return Array.isArray(arr) ? arr.join('\n') : '';
-  } catch { return ''; }
-}
-
-/** Parse textarea lines → JSON string */
-function textToClosedDates(text: string): string {
-  const dates = text
-    .split('\n')
-    .map(d => d.trim())
-    .filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
-  return JSON.stringify([...new Set(dates)].sort());
 }
 
 export default function SettingsPage() {
@@ -65,23 +45,17 @@ export default function SettingsPage() {
   const router                        = useRouter();
   const { settings, loading }         = useSettings();
   const { can, loading: roleLoading } = useUserRole();
-  const [form,  setForm]              = useState<SettingsFlat>({});
+  const [form, setForm]               = useState<SettingsFlat>({});
   const [saving, setSaving]           = useState(false);
   const [saved,  setSaved]            = useState(false);
   const [error,  setError]            = useState('');
-  const [activeTab, setActiveTab]     = useState<'general' | 'closure' | 'banners'>('general');
-
-  // For the closure textarea we keep a separate raw string
-  const [closureText, setClosureText] = useState('');
+  const [activeTab, setActiveTab]     = useState<'general'|'banners'>('general');
 
   useEffect(() => {
-    if (!loading) {
-      const flat = toFlat(settings);
-      setForm(flat);
-      setClosureText(closedDatesToText(flat.closed_dates ?? '[]'));
-    }
+    if (!loading) setForm(toFlat(settings));
   }, [settings, loading]);
 
+  // Auth guard — AFTER all hooks
   if (!ready) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1F16' }}>
       <span className="inline-block w-8 h-8 border-4 border-[#52B788]/20 border-t-[#52B788] rounded-full animate-spin"/>
@@ -101,7 +75,7 @@ export default function SettingsPage() {
     );
   }
 
-  const set    = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }));
+  const set = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }));
   const toggle = (key: string) => setForm(f => ({ ...f, [key]: f[key] === 'true' ? 'false' : 'true' }));
 
   const handleSave = async (e: React.FormEvent) => {
@@ -112,10 +86,7 @@ export default function SettingsPage() {
       setError('Jam buka harus lebih kecil dari jam tutup'); setSaving(false); return;
     }
 
-    // Merge closure text into form before saving
-    const finalForm = { ...form, closed_dates: textToClosedDates(closureText) };
-
-    const upserts = Object.entries(finalForm).map(([key, value]) => ({ key, value: String(value) }));
+    const upserts = Object.entries(form).map(([key, value]) => ({ key, value: String(value) }));
     const { error: err } = await supabase.from('settings').upsert(upserts, { onConflict: 'key' });
 
     setSaving(false);
@@ -142,15 +113,11 @@ export default function SettingsPage() {
   );
 
   const BANNER_TYPES: { value: BannerType; label: string; preview: string }[] = [
-    { value: 'promo',   label: '🎉 Promo',   preview: 'Hijau gelap' },
-    { value: 'info',    label: 'ℹ️ Info',    preview: 'Biru'       },
-    { value: 'warning', label: '⚠️ Penting', preview: 'Amber'      },
-    { value: 'sponsor', label: '✨ Sponsor',  preview: 'Ungu'       },
+    { value: 'promo',   label: '🎉 Promo',   preview: 'Hijau gelap — cocok untuk promo/diskon' },
+    { value: 'info',    label: 'ℹ️ Info',    preview: 'Biru — cocok untuk pengumuman netral' },
+    { value: 'warning', label: '⚠️ Penting', preview: 'Kuning/amber — cocok untuk peringatan' },
+    { value: 'sponsor', label: '✨ Sponsor',  preview: 'Ungu — cocok untuk iklan mitra' },
   ];
-
-  // Parse dates for preview
-  const parsedClosedDates = closureText
-    .split('\n').map(d => d.trim()).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
 
   return (
     <AdminLayout courtName={settings.court_name}>
@@ -164,8 +131,7 @@ export default function SettingsPage() {
         <div className="flex gap-1 p-1 rounded-xl border border-[#52B788]/15 mb-5"
           style={{ background: 'rgba(255,255,255,0.02)' }}>
           {([
-            { id: 'general', label: '⚙️ Umum'           },
-            { id: 'closure', label: '🚫 Hari Tutup'     },
+            { id: 'general', label: '⚙️ Umum'      },
             { id: 'banners', label: '📢 Banner / Iklan' },
           ] as { id: typeof activeTab; label: string }[]).map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)}
@@ -189,6 +155,7 @@ export default function SettingsPage() {
             {/* ══ GENERAL TAB ══════════════════════════════════════════════ */}
             {activeTab === 'general' && (
               <>
+                {/* Info GOR */}
                 <AdminCard>
                   <AdminSectionHeader title="🏟️ Informasi GOR"/>
                   <div className="grid sm:grid-cols-2 gap-4">
@@ -203,6 +170,7 @@ export default function SettingsPage() {
                   </div>
                 </AdminCard>
 
+                {/* Jam & Harga */}
                 <AdminCard>
                   <AdminSectionHeader title="⏰ Jam Operasional & Harga"/>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -223,6 +191,7 @@ export default function SettingsPage() {
                   </div>
                 </AdminCard>
 
+                {/* Pengumuman */}
                 <AdminCard>
                   <AdminSectionHeader title="📢 Pengumuman Navbar"/>
                   <textarea value={form.announcement ?? ''} rows={2}
@@ -232,6 +201,7 @@ export default function SettingsPage() {
                   <p className="text-xs text-[#74C69D]/30 mt-2">Tampil sebagai banner kuning di bawah navbar.</p>
                 </AdminCard>
 
+                {/* Notif WA */}
                 <AdminCard>
                   <AdminSectionHeader title="🔔 Notifikasi WhatsApp"/>
                   <Toggle k="fonnte_enabled" label="Aktifkan via Fonnte"
@@ -245,116 +215,15 @@ export default function SettingsPage() {
               </>
             )}
 
-            {/* ══ CLOSURE TAB ═══════════════════════════════════════════════ */}
-            {activeTab === 'closure' && (
-              <>
-                <AdminCard>
-                  <AdminSectionHeader
-                    title="🚫 Hari Tutup / Libur"
-                    subtitle="Pada tanggal ini, seluruh slot jadwal di halaman publik akan dinonaktifkan dan tampil pesan 'Lapangan Tutup'."/>
-
-                  <div>
-                    <label className={labelClass}>
-                      Daftar Tanggal Tutup
-                      <span className="ml-2 font-normal text-[#74C69D]/35">(satu tanggal per baris, format YYYY-MM-DD)</span>
-                    </label>
-                    <textarea
-                      value={closureText}
-                      onChange={e => setClosureText(e.target.value)}
-                      rows={8}
-                      className={inputClass + " resize-none font-mono text-xs leading-relaxed"}
-                      placeholder={"2025-12-25\n2026-01-01\n2026-01-29"}
-                    />
-                    <p className="text-[10px] text-[#74C69D]/30 mt-1.5">
-                      Tanggal yang tidak sesuai format YYYY-MM-DD akan diabaikan otomatis saat disimpan.
-                    </p>
-                  </div>
-
-                  {/* Quick-add buttons for common holidays */}
-                  <div className="mt-4">
-                    <p className={labelClass}>Tambah Cepat — Hari Libur Nasional</p>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        { label: 'Natal 2025',     date: '2025-12-25' },
-                        { label: 'Tahun Baru 2026',date: '2026-01-01' },
-                        { label: 'Idul Fitri 1447', date: '2026-03-30' },
-                        { label: 'Idul Fitri 2',    date: '2026-03-31' },
-                        { label: 'Hari Buruh',      date: '2026-05-01' },
-                        { label: 'Hari Raya Waisak', date: '2026-05-12'},
-                      ].map(h => {
-                        const already = parsedClosedDates.includes(h.date);
-                        return (
-                          <button
-                            key={h.date}
-                            type="button"
-                            onClick={() => {
-                              if (already) {
-                                setClosureText(t => t.split('\n').filter(l => l.trim() !== h.date).join('\n'));
-                              } else {
-                                setClosureText(t => (t ? t + '\n' + h.date : h.date));
-                              }
-                            }}
-                            className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
-                              already
-                                ? 'border-red-500/40 bg-red-500/15 text-red-400'
-                                : 'border-[#52B788]/20 text-[#74C69D]/50 hover:border-[#52B788]/40 hover:text-[#74C69D]'
-                            }`}>
-                            {already ? '✓ ' : '+ '}{h.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Preview of parsed dates */}
-                  {parsedClosedDates.length > 0 && (
-                    <div className="mt-4 p-4 rounded-xl border border-[#52B788]/15 bg-[#52B788]/5">
-                      <p className="text-[10px] text-[#74C69D]/40 uppercase tracking-wide font-bold mb-3">
-                        {parsedClosedDates.length} Tanggal akan ditutup:
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {parsedClosedDates.map(d => (
-                          <div key={d}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-red-500/25 bg-red-500/10 text-red-400 text-[11px]">
-                            <span>🚫</span>
-                            <span className="font-medium">{d}</span>
-                            <span className="text-red-400/50">
-                              {format(new Date(d + 'T00:00:00'), 'EEE, d MMM yyyy', { locale: id })}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setClosureText(t => t.split('\n').filter(l => l.trim() !== d).join('\n'))}
-                              className="ml-1 text-red-400/40 hover:text-red-300 transition-colors"
-                            >✕</button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {parsedClosedDates.length === 0 && (
-                    <div className="mt-4 p-4 rounded-xl border border-[#52B788]/10 bg-[#52B788]/3 text-center">
-                      <p className="text-[#74C69D]/30 text-sm">Belum ada tanggal tutup yang ditetapkan.</p>
-                      <p className="text-[#74C69D]/20 text-xs mt-1">Lapangan dianggap buka setiap hari.</p>
-                    </div>
-                  )}
-                </AdminCard>
-
-                <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/8 text-xs text-amber-400/80">
-                  <strong className="text-amber-400">💡 Tips:</strong> Gunakan fitur Pengumuman (tab Umum) untuk memberi
-                  tahu customer tentang hari libur mendatang, meski jadwal belum diblokir.
-                </div>
-              </>
-            )}
-
             {/* ══ BANNERS TAB ══════════════════════════════════════════════ */}
             {activeTab === 'banners' && (
               <>
+                {/* Info posisi banner */}
                 <div className="grid sm:grid-cols-3 gap-3 mb-2">
                   {[
-                    { pos:'1', icon:'🎉', label:'Banner Promo',   desc:'Di bawah hero',         key:'promo'   },
-                    { pos:'2', icon:'🖼️', label:'Banner Sponsor', desc:'Di antara jadwal',       key:'sponsor' },
-                    { pos:'3', icon:'📌', label:'Info Strip',     desc:'Strip tipis atas footer', key:'info'   },
+                    { pos:'1', icon:'🎉', label:'Banner Promo', desc:'Di bawah hero, sebelum jadwal', key:'promo' },
+                    { pos:'2', icon:'🖼️', label:'Banner Sponsor', desc:'Di antara jadwal dan cara booking', key:'sponsor' },
+                    { pos:'3', icon:'📌', label:'Info Strip', desc:'Strip tipis di atas footer', key:'info' },
                   ].map(b => (
                     <div key={b.pos} className={`p-3 rounded-xl border text-center transition-all ${
                       form[`banner_${b.key}_enabled`] === 'true'
@@ -371,13 +240,16 @@ export default function SettingsPage() {
                   ))}
                 </div>
 
-                {/* Banner Promo */}
+                {/* ── Banner Promo ── */}
                 <AdminCard>
-                  <AdminSectionHeader title="🎉 Banner Promo" subtitle="Muncul di bawah hero section"/>
+                  <AdminSectionHeader title="🎉 Banner Promo"
+                    subtitle="Muncul di bawah hero section, bisa ditutup user"/>
                   <div className="space-y-4">
                     <Toggle k="banner_promo_enabled" label="Aktifkan Banner Promo"/>
+
                     {form.banner_promo_enabled === 'true' && (
                       <>
+                        {/* Type selector */}
                         <div>
                           <label className={labelClass}>Tipe Banner</label>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -395,19 +267,22 @@ export default function SettingsPage() {
                             ))}
                           </div>
                         </div>
+
                         <div>
                           <label className={labelClass}>Judul Banner *</label>
                           <input type="text" value={form.banner_promo_title ?? ''} className={inputClass}
                             placeholder="Promo Akhir Tahun! 🎉"
                             onChange={e => set('banner_promo_title', e.target.value)}/>
                         </div>
+
                         <div>
                           <label className={labelClass}>Isi Teks Banner</label>
                           <textarea value={form.banner_promo_body ?? ''} rows={2}
                             className={inputClass + " resize-none"}
-                            placeholder="Booking 2 jam gratis 1 jam setiap Senin–Jumat."
+                            placeholder="Booking 2 jam gratis 1 jam setiap Senin–Jumat. Berlaku s/d 31 Desember."
                             onChange={e => set('banner_promo_body', e.target.value)}/>
                         </div>
+
                         <div className="grid sm:grid-cols-2 gap-4">
                           <div>
                             <label className={labelClass}>Teks Tombol (opsional)</label>
@@ -418,27 +293,54 @@ export default function SettingsPage() {
                           <div>
                             <label className={labelClass}>URL Tombol (kosong = WA admin)</label>
                             <input type="url" value={form.banner_promo_cta_url ?? ''} className={inputClass}
-                              placeholder="https://..."
+                              placeholder="https://... (kosongkan untuk WA)"
                               onChange={e => set('banner_promo_cta_url', e.target.value)}/>
                           </div>
                         </div>
+
+                        {/* Live preview */}
+                        {form.banner_promo_title && (
+                          <div className="p-3 rounded-xl border border-[#52B788]/20 bg-[#52B788]/5">
+                            <p className="text-[10px] text-[#74C69D]/40 mb-2 uppercase tracking-wide font-bold">Preview</p>
+                            <div className="rounded-xl border border-[#52B788]/30 bg-[#0D2B1C] p-3">
+                              <div className="flex items-start gap-3">
+                                <span className="text-xl">🎉</span>
+                                <div className="flex-1">
+                                  <div className="font-bold text-white text-sm">{form.banner_promo_title}</div>
+                                  {form.banner_promo_body && <p className="text-xs text-[#A8D5BC] mt-0.5">{form.banner_promo_body}</p>}
+                                  {form.banner_promo_cta_text && (
+                                    <span className="inline-block mt-2 px-3 py-1 rounded-lg bg-[#40916C] text-white text-xs font-bold">
+                                      {form.banner_promo_cta_text} →
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-white/20 text-xs">✕</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
                 </AdminCard>
 
-                {/* Banner Sponsor */}
+                {/* ── Banner Sponsor ── */}
                 <AdminCard>
-                  <AdminSectionHeader title="🖼️ Banner Sponsor / Iklan Gambar"/>
+                  <AdminSectionHeader title="🖼️ Banner Sponsor / Iklan Gambar"
+                    subtitle="Gambar penuh lebar, muncul di antara jadwal dan cara booking"/>
                   <div className="space-y-4">
                     <Toggle k="banner_sponsor_enabled" label="Aktifkan Banner Sponsor"/>
+
                     {form.banner_sponsor_enabled === 'true' && (
                       <>
                         <div>
-                          <label className={labelClass}>URL Gambar * (1200×300 px)</label>
+                          <label className={labelClass}>URL Gambar * (disarankan 1200×300 px)</label>
                           <input type="url" value={form.banner_sponsor_image ?? ''} className={inputClass}
-                            placeholder="https://example.com/banner.jpg"
+                            placeholder="https://example.com/gambar-sponsor.jpg"
                             onChange={e => set('banner_sponsor_image', e.target.value)}/>
+                          <p className="text-[10px] text-[#74C69D]/30 mt-1">
+                            Upload gambar ke Cloudinary/Supabase Storage/Google Drive lalu paste URL-nya
+                          </p>
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
                           <div>
@@ -454,12 +356,15 @@ export default function SettingsPage() {
                               onChange={e => set('banner_sponsor_url', e.target.value)}/>
                           </div>
                         </div>
+
+                        {/* Image preview */}
                         {form.banner_sponsor_image && (
                           <div className="p-3 rounded-xl border border-[#52B788]/20 bg-[#52B788]/5">
                             <p className="text-[10px] text-[#74C69D]/40 mb-2 uppercase tracking-wide font-bold">Preview</p>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={form.banner_sponsor_image} alt="Preview"
-                              className="w-full h-auto max-h-32 object-cover rounded-xl"
+                            <img src={form.banner_sponsor_image}
+                              alt={form.banner_sponsor_title || 'Sponsor'}
+                              className="w-full h-auto max-h-40 object-cover rounded-xl"
                               onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}/>
                           </div>
                         )}
@@ -468,25 +373,40 @@ export default function SettingsPage() {
                   </div>
                 </AdminCard>
 
-                {/* Info Strip */}
+                {/* ── Info Strip ── */}
                 <AdminCard>
-                  <AdminSectionHeader title="📌 Info Strip" subtitle="Baris tipis di atas footer"/>
+                  <AdminSectionHeader title="📌 Info Strip"
+                    subtitle="Baris tipis di atas footer — tidak mengganggu, mudah ditutup user"/>
                   <div className="space-y-4">
                     <Toggle k="banner_info_enabled" label="Aktifkan Info Strip"/>
                     {form.banner_info_enabled === 'true' && (
-                      <div>
-                        <label className={labelClass}>Teks Info *</label>
-                        <input type="text" value={form.banner_info_text ?? ''} className={inputClass}
-                          placeholder="Tersedia perlengkapan badminton. Hubungi admin untuk info."
-                          onChange={e => set('banner_info_text', e.target.value)}/>
-                      </div>
+                      <>
+                        <div>
+                          <label className={labelClass}>Teks Info *</label>
+                          <input type="text" value={form.banner_info_text ?? ''} className={inputClass}
+                            placeholder="Tersedia juga perlengkapaan badminton. Hubungi admin untuk info."
+                            onChange={e => set('banner_info_text', e.target.value)}/>
+                        </div>
+                        {form.banner_info_text && (
+                          <div className="p-3 rounded-xl border border-[#52B788]/20 bg-[#52B788]/5">
+                            <p className="text-[10px] text-[#74C69D]/40 mb-2 uppercase tracking-wide font-bold">Preview</p>
+                            <div className="flex items-center justify-between gap-4 py-2 px-3 rounded-lg bg-[#0D2B1C] border border-[#52B788]/10">
+                              <div className="flex items-center gap-2 text-xs text-[#A8D5BC]/70">
+                                <span className="text-[#52B788]">📌</span>
+                                {form.banner_info_text}
+                              </div>
+                              <span className="text-white/20 text-xs flex-shrink-0">✕</span>
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </AdminCard>
               </>
             )}
 
-            {/* ── Save / error / success ── */}
+            {/* Save actions */}
             {error && <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">⚠️ {error}</div>}
             {saved  && <div className="p-3 rounded-xl bg-[#52B788]/10 border border-[#52B788]/20 text-[#74C69D] text-sm">✅ Pengaturan berhasil disimpan!</div>}
 
@@ -497,11 +417,7 @@ export default function SettingsPage() {
                   : '💾 Simpan Semua Pengaturan'}
               </AdminButton>
               <AdminButton type="button" variant="secondary"
-                onClick={() => {
-                  const flat = toFlat(settings);
-                  setForm(flat);
-                  setClosureText(closedDatesToText(flat.closed_dates ?? '[]'));
-                }}>
+                onClick={() => setForm(toFlat(settings))}>
                 Reset
               </AdminButton>
             </div>

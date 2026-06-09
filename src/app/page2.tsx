@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import Script from 'next/script';
-import { DEFAULT_SETTINGS, CourtSettings, DEFAULT_BANNERS, BannerType, parseClosedDates } from '@/lib/config';
+import { DEFAULT_SETTINGS, CourtSettings, DEFAULT_BANNERS, BannerType } from '@/lib/config';
 import { generatePublicMetadata, generateStructuredData } from '@/lib/seo';
 import PublicPage from './PublicPage';
 
@@ -28,7 +28,6 @@ async function getSettings(): Promise<CourtSettings> {
       cancellation_window_hours:Number(map.cancellation_window_hours ?? DEFAULT_SETTINGS.cancellation_window_hours),
       announcement:             map.announcement             ?? '',
       fonnte_enabled:           map.fonnte_enabled === 'true',
-      closed_dates:             parseClosedDates(map.closed_dates),
       banners: {
         promo_enabled:   map.banner_promo_enabled   === 'true',
         promo_type:     (map.banner_promo_type      ?? 'promo') as BannerType,

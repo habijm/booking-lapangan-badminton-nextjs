@@ -35,32 +35,9 @@ async function getData(): Promise<{ settings: CourtSettings; events: BadmintonEv
 
 export async function generateMetadata() {
   const { settings } = await getData();
-  const title = `Event & Turnamen | ${settings.court_name}`;
-  const description = `Daftar pertandingan dan perlombaan badminton di ${settings.court_name}. Cek jadwal event dan daftar sekarang.`;
   return {
-    title,
-    description,
-    openGraph: {
-      type: 'website',
-      title,
-      description,
-      siteName: settings.court_name,
-      locale: 'id_ID',
-      images: [
-        {
-          url: '/og-image.png',
-          width: 1200,
-          height: 630,
-          alt: `${settings.court_name} — Event & Turnamen`,
-        },
-      ],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      images: ['/og-image.png'],
-    },
+    title: `Event & Turnamen | ${settings.court_name}`,
+    description: `Daftar pertandingan dan perlombaan badminton di ${settings.court_name}. Cek jadwal event dan daftar sekarang.`,
   };
 }
 
