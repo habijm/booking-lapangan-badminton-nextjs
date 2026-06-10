@@ -38,7 +38,7 @@ function generateMonthlySessions(
   schedules.forEach(sch => {
     const dayIndex = sch.day_of_week as 0|1|2|3|4|5|6;
     const [h, m]   = sch.start_time.split(':').map(Number);
-    const endH     = h + hoursPerSession;
+    const endH     = h + Math.round(hoursPerSession);
     const weeks    = eachWeekOfInterval({ start, end }, { weekStartsOn: 0 });
     weeks.forEach(weekStart => {
       let dayDate = nextDay(weekStart, dayIndex);
@@ -141,7 +141,7 @@ function PlanManager({ plans, onRefresh }: { plans: MembershipPlan[]; onRefresh:
           <select value={form.hours_per_session}
             onChange={e => setForm(f=>({...f,hours_per_session:Number(e.target.value)}))}
             className={selectCls} style={{ colorScheme:'dark' }}>
-            {[1, 1.5, 2, 2.5, 3].map(h => (
+            {[1, 2, 3, 4].map(h => (
               <option key={h} value={h} style={{ background:'#0D1F16' }}>{h} jam/sesi</option>
             ))}
           </select>
@@ -340,7 +340,7 @@ export default function AdminMembershipsPage() {
         sessions.map(s => ({
           customer_name: form.customer_name.trim(), customer_phone: form.customer_phone.trim(),
           booking_date: s.date, start_time: s.start_time, end_time: s.end_time,
-          duration_hours: selectedPlan.hours_per_session,
+          duration_hours: Math.round(selectedPlan.hours_per_session),
           status: form.status === 'active' ? 'confirmed' : 'pending',
           notes: `[Langganan] ${selectedPlan.name}`, court_id: scheduleSlots[0]?.court_id||null,
         }))
@@ -519,9 +519,9 @@ export default function AdminMembershipsPage() {
                       <div>
                         <label className={labelCls}>Jam Mulai</label>
                         <select value={slot.start_time} onChange={e=>setSlot(i,'start_time',e.target.value)} className={selectCls} style={{colorScheme:'dark'}}>
-                          {Array.from({length:settings.closing_hour-settings.opening_hour-selectedPlan.hours_per_session+1},(_,h)=>{
+                          {Array.from({length:settings.closing_hour-settings.opening_hour-Math.round(selectedPlan.hours_per_session)+1},(_,h)=>{
                             const hour=settings.opening_hour+h; const val=`${hour.toString().padStart(2,'0')}:00`;
-                            return <option key={val} value={val} style={{background:'#0D1F16'}}>{val} – {(hour+selectedPlan.hours_per_session).toString().padStart(2,'00')}:00</option>;
+                            return <option key={val} value={val} style={{background:'#0D1F16'}}>{val} – {(hour+Math.round(selectedPlan.hours_per_session)).toString().padStart(2,'00')}:00</option>;
                           })}
                         </select>
                       </div>
@@ -535,7 +535,7 @@ export default function AdminMembershipsPage() {
                       )}
                     </div>
                     <div className="mt-2 text-xs text-[#74C69D]/40">
-                      ⏰ Setiap {DAY_NAMES[slot.day_of_week]}, {slot.start_time} – {`${(parseInt(slot.start_time)+selectedPlan.hours_per_session).toString().padStart(2,'0')}:00`} WIB
+                      ⏰ Setiap {DAY_NAMES[slot.day_of_week]}, {slot.start_time} – {`${(parseInt(slot.start_time)+Math.round(selectedPlan.hours_per_session)).toString().padStart(2,'0')}:00`} WIB
                     </div>
                   </div>
                 ))}
