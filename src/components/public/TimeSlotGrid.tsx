@@ -16,6 +16,7 @@ interface Court {
   name:          string;
   price_per_hour:number;
   is_active:     boolean;
+  created_at:     string; // ← tambahkan ini
 }
 
 interface BookedSlot {
