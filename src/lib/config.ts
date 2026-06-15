@@ -1,3 +1,5 @@
+import { BookingMode } from '@/types/payment';
+
 /**
  * COURT_CONFIG — Default values. Live values come from DB via useSettings().
  */
@@ -49,6 +51,7 @@ export type CourtSettings = {
   court_name:               string;
   court_address:            string;
   whatsapp_number:          string;
+  booking_mode:             BookingMode;
   opening_hour:             number;
   closing_hour:             number;
   price_per_hour:           number;
@@ -59,12 +62,14 @@ export type CourtSettings = {
   /** Dates (YYYY-MM-DD) when the court is closed — slots disabled on public schedule */
   closed_dates:             string[];
   banners:                  BannerConfig;
+  
 };
 
 export const DEFAULT_SETTINGS: CourtSettings = {
   court_name:               COURT_CONFIG.name,
   court_address:            COURT_CONFIG.address,
   whatsapp_number:          COURT_CONFIG.whatsapp,
+  booking_mode:             'whatsapp',
   opening_hour:             COURT_CONFIG.openingHour,
   closing_hour:             COURT_CONFIG.closingHour,
   price_per_hour:           COURT_CONFIG.pricePerHour,
@@ -76,7 +81,7 @@ export const DEFAULT_SETTINGS: CourtSettings = {
   banners:                  DEFAULT_BANNERS,
 };
 
-export const SETTINGS_LABELS: Record<keyof Omit<CourtSettings, 'banners' | 'closed_dates'>, string> = {
+export const SETTINGS_LABELS: Record<keyof Omit<CourtSettings, 'banners' | 'closed_dates' | 'booking_mode'>, string> = {
   court_name:               'Nama GOR / Lapangan',
   court_address:            'Alamat',
   whatsapp_number:          'Nomor WhatsApp Admin',
@@ -90,11 +95,11 @@ export const SETTINGS_LABELS: Record<keyof Omit<CourtSettings, 'banners' | 'clos
 };
 
 /** Safe JSON parse for closed_dates stored as string in DB */
-export function parseClosedDates(raw: string | undefined | null): string[] {
-  if (!raw) return [];
+export function parseClosedDates(value: string | undefined | null): string[] {
+  if (!value) return [];
   try {
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr.filter((d): d is string => typeof d === 'string') : [];
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }

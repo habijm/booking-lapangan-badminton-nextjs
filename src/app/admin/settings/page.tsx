@@ -11,6 +11,8 @@ import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminCard, AdminSectionHeader, AdminButton } from '@/components/admin/AdminCard';
 import { DEFAULT_SETTINGS, SETTINGS_LABELS, CourtSettings, BannerType, parseClosedDates } from '@/lib/config';
+import BookingModeSwitch from '@/components/admin/BookingModeSwitch';
+import { BookingMode } from '@/types/payment';
 
 type SettingsFlat = Record<string, string>;
 
@@ -242,6 +244,14 @@ export default function SettingsPage() {
                     </div>
                   )}
                 </AdminCard>
+
+                <BookingModeSwitch
+                  initialMode={(settings.booking_mode ?? 'whatsapp') as BookingMode}
+                  onModeChange={(mode) => {
+                    // Mode booking disimpan langsung via API di BookingModeSwitch
+                    // Tidak perlu handle di sini karena sudah tersimpan otomatis
+                  }}
+                />
               </>
             )}
 

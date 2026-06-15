@@ -11,8 +11,29 @@ import { CourtSettings } from '@/lib/config';
 
 interface Props { settings: CourtSettings }
 
+// Langkah cara booking — berbeda tergantung mode
+const STEPS_WHATSAPP = [
+  { step: '01', icon: '👀', title: 'Cek Jadwal',
+    desc: 'Pilih tanggal dan lihat slot yang tersedia (hijau = tersedia)' },
+  { step: '02', icon: '💬', title: 'Hubungi via WhatsApp',
+    desc: 'Klik slot tersedia atau tombol WhatsApp untuk langsung chat admin' },
+  { step: '03', icon: '✅', title: 'Konfirmasi Booking',
+    desc: 'Admin konfirmasi dan slot otomatis tampil sebagai "Dikonfirmasi"' },
+];
+
+const STEPS_DIRECT = [
+  { step: '01', icon: '👀', title: 'Pilih Slot',
+    desc: 'Pilih tanggal dan klik slot tersedia yang ingin dipesan' },
+  { step: '02', icon: '📝', title: 'Isi Data & Bayar',
+    desc: 'Isi nama, nomor HP, lalu pilih metode pembayaran (kartu, transfer, GoPay, QRIS, dll)' },
+  { step: '03', icon: '✅', title: 'Booking Dikonfirmasi',
+    desc: 'Setelah pembayaran berhasil, booking langsung dikonfirmasi otomatis' },
+];
+
 export default function PublicPage({ settings }: Props) {
   const { banners } = settings;
+  const isDirectMode = settings.booking_mode === 'direct';
+  const steps        = isDirectMode ? STEPS_DIRECT : STEPS_WHATSAPP;
 
   return (
     <div className="min-h-screen bg-[#0D1F16]">
@@ -22,7 +43,7 @@ export default function PublicPage({ settings }: Props) {
       {/* ── 1. Hero ── */}
       <HeroSection settings={settings} />
 
-      {/* ── 2. Banner Promo — langsung setelah hero, tidak mengganggu ── */}
+      {/* ── 2. Banner Promo ── */}
       <BannerPromo banners={banners} waNumber={settings.whatsapp_number} />
 
       {/* ── 3. Jadwal Lapangan ── */}
@@ -37,39 +58,46 @@ export default function PublicPage({ settings }: Props) {
             <h2 className="text-2xl sm:text-3xl font-bold text-white font-display">
               Jadwal Lapangan
             </h2>
+            {/* Subtitle berubah sesuai mode */}
             <p className="text-[#74C69D]/50 text-sm mt-2">
-              Pilih tanggal dan klik slot tersedia untuk langsung booking via WhatsApp
+              {isDirectMode
+                ? 'Pilih tanggal dan klik slot tersedia untuk booking & bayar langsung online'
+                : 'Pilih tanggal dan klik slot tersedia untuk langsung booking via WhatsApp'}
             </p>
+
+            {/* Badge mode aktif */}
+            <div className={`inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full text-xs font-medium border ${
+              isDirectMode
+                ? 'bg-[#40916C]/10 border-[#40916C]/25 text-[#52B788]'
+                : 'bg-[#25D366]/8 border-[#25D366]/20 text-[#4ADE80]'
+            }`}>
+              {isDirectMode ? '💳 Pembayaran Online Aktif' : '💬 Booking via WhatsApp'}
+            </div>
           </div>
 
           {/* Schedule card */}
           <div className="rounded-2xl border border-[#52B788]/15 p-5 sm:p-6"
             style={{ background: 'rgba(255,255,255,0.03)' }}>
-            <ScheduleGrid settings={settings} />
+            {/* ScheduleGrid menerima bookingMode untuk menentukan aksi saat slot diklik */}
+            <ScheduleGrid settings={settings} bookingMode={settings.booking_mode} />
           </div>
         </div>
       </section>
 
-      {/* ── 4. Banner Sponsor — di antara jadwal dan cara booking ── */}
+      {/* ── 4. Banner Sponsor ── */}
       <BannerSponsor banners={banners} />
 
-      {/* ── 5. Cara Booking ── */}
+      {/* ── 5. Cara Booking (dinamis sesuai mode) ── */}
       <section id="cara-booking" className="px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
         <div className="max-w-6xl mx-auto">
           <div className="rounded-2xl border border-[#52B788]/15 p-5 sm:p-6"
             style={{ background: 'rgba(255,255,255,0.03)' }}>
             <h2 className="text-lg font-bold text-white font-display mb-5 flex items-center gap-2">
-              <span>ℹ️</span> Cara Booking Lapangan
+              <span>{isDirectMode ? '💳' : 'ℹ️'}</span>
+              {isDirectMode ? 'Cara Booking & Pembayaran' : 'Cara Booking Lapangan'}
             </h2>
             <div className="grid sm:grid-cols-3 gap-4">
-              {[
-                { step:'01', icon:'👀', title:'Cek Jadwal',
-                  desc:'Pilih tanggal dan lihat slot yang tersedia (hijau = tersedia)' },
-                { step:'02', icon:'💬', title:'Hubungi via WhatsApp',
-                  desc:'Klik slot tersedia atau tombol WhatsApp untuk langsung chat admin' },
-                { step:'03', icon:'✅', title:'Konfirmasi Booking',
-                  desc:'Admin konfirmasi dan slot otomatis tampil sebagai "Dikonfirmasi"' },
-              ].map(item => (
+              {steps.map(item => (
                 <div key={item.step} className="flex gap-4 p-4 rounded-xl border border-[#52B788]/10 bg-[#52B788]/5">
                   <div className="flex-shrink-0">
                     <div className="w-10 h-10 rounded-xl bg-[#40916C] text-white flex items-center justify-center font-bold font-display text-sm shadow-lg shadow-[#40916C]/20">
@@ -94,6 +122,9 @@ export default function PublicPage({ settings }: Props) {
                   `Harga sewa: Rp ${settings.price_per_hour.toLocaleString('id')}/jam`,
                   `Booking tersedia hingga ${settings.booking_window_days} hari ke depan`,
                   `Pembatalan maksimal ${settings.cancellation_window_hours} jam sebelum jadwal`,
+                  isDirectMode
+                    ? 'Pembayaran online: kartu kredit, transfer bank, GoPay, ShopeePay, QRIS, dll'
+                    : 'Hubungi admin WhatsApp untuk konfirmasi dan pembayaran',
                 ].map((text, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className="text-amber-500/60 mt-0.5 flex-shrink-0">•</span>
@@ -102,6 +133,19 @@ export default function PublicPage({ settings }: Props) {
                 ))}
               </ul>
             </div>
+
+            {/* CTA WhatsApp — hanya tampil di mode WA */}
+            {!isDirectMode && (
+              <div className="mt-4 flex justify-center">
+                <a
+                  href={`https://wa.me/${settings.whatsapp_number}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#22c55e] text-white font-bold text-sm transition-all shadow-lg shadow-[#25D366]/20 active:scale-95"
+                >
+                  <span>💬</span> Chat WhatsApp Admin
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -109,10 +153,10 @@ export default function PublicPage({ settings }: Props) {
       {/* ── 6. Events Preview ── */}
       <EventsPreview waNumber={settings.whatsapp_number} />
 
-      {/* ── 7. Banner Info strip (tipis, tidak mengganggu) ── */}
+      {/* ── 7. Banner Info strip ── */}
       <BannerInfo banners={banners} />
 
-      {/* ── 7. Footer ── */}
+      {/* ── 8. Footer ── */}
       <footer className="border-t border-[#52B788]/10 px-4 sm:px-6 lg:px-8 py-8"
         style={{ background: 'rgba(0,0,0,0.3)' }}>
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">

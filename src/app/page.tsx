@@ -1,7 +1,8 @@
+// src/app/page.tsx
 import { createClient } from '@supabase/supabase-js';
-import Script from 'next/script';
 import { DEFAULT_SETTINGS, CourtSettings, DEFAULT_BANNERS, BannerType, parseClosedDates } from '@/lib/config';
 import { generatePublicMetadata, generateStructuredData } from '@/lib/seo';
+import { BookingMode } from '@/types/payment';
 import PublicPage from './PublicPage';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,7 @@ async function getSettings(): Promise<CourtSettings> {
       announcement:             map.announcement             ?? '',
       fonnte_enabled:           map.fonnte_enabled === 'true',
       closed_dates:             parseClosedDates(map.closed_dates),
+      booking_mode:            (map.booking_mode ?? 'whatsapp') as BookingMode,
       banners: {
         promo_enabled:   map.banner_promo_enabled   === 'true',
         promo_type:     (map.banner_promo_type      ?? 'promo') as BannerType,
@@ -57,10 +59,17 @@ export async function generateMetadata() {
 export default async function HomePage() {
   const settings       = await getSettings();
   const structuredData = generateStructuredData(settings);
+
+  // Inject structured data via dangerouslySetInnerHTML di div biasa
+  // menghindari konflik hooks dari next/script di Server Component
   return (
     <>
-      <Script id="structured-data" type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}/>
+      <div
+        id="structured-data-container"
+        dangerouslySetInnerHTML={{
+          __html: `<script type="application/ld+json">${JSON.stringify(structuredData)}</script>`,
+        }}
+      />
       <PublicPage settings={settings} />
     </>
   );
