@@ -52,10 +52,15 @@ export async function createSnapToken(params: {
   const env = getEnv();
   const url = `${MIDTRANS_BASE_URL[env]}/snap/v1/transactions`;
 
-  const expiryDate = new Date(Date.now() + params.expiryMinutes * 60 * 1000);
   const fmt = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ` +
-    `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')} +0700`;
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ` +
+    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')} +0700`;
+
+  // Midtrans requires expiry.start_time to be strictly >= current time.
+  // Add a small buffer (5 seconds) to avoid "expiry must be greater than the current time".
+  const now = Date.now();
+  const start = new Date(now + 5000);
+
 
   const body = {
     transaction_details: {
@@ -82,7 +87,8 @@ export async function createSnapToken(params: {
       pending: params.callbackUrl.pending,
     },
     expiry: {
-      start_time: fmt(new Date()),
+      // Use start_time slightly in the future to avoid Midtrans 400.
+      start_time: fmt(start),
       unit:       'minutes',
       duration:   params.expiryMinutes,
     },
