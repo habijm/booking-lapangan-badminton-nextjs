@@ -158,18 +158,5 @@
   animation: fadeUp 0.4s ease-out forwards;
 }
 
-/* Tambahkan ke src/app/globals.css */
 
-/* ── Midtrans Snap popup — paksa tampil di atas semua elemen ── */
-#snap-midtrans,
-.snap-overlay,
-[id^="snap-"],
-iframe[src*="midtrans"] {
-  z-index: 99999 !important;
-  position: fixed !important;
-}
 
-/* Pastikan modal booking juga di atas navbar */
-.booking-modal-overlay {
-  z-index: 9999 !important;
-}

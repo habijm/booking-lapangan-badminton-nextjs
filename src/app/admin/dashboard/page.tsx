@@ -569,6 +569,7 @@ export default function AdminDashboardPage() {
                   <BookingCard key={booking.id} booking={booking} today={today}
                     actionLoading={actionLoading}
                     canConfirm={can('confirm')} canCancel={can('cancel')} canDelete={can('delete')}
+                    courtName={settings.court_name}
                     onConfirm={id => updateStatus(id,'confirmed')}
                     onCancel={id => updateStatus(id,'cancelled')}
                     onDelete={deleteBooking}/>
@@ -583,7 +584,7 @@ export default function AdminDashboardPage() {
         ═══════════════════════════════════════ */}
         {tab === 'add' && (
           <div className="animate-fade-up max-w-lg">
-            <AddBookingForm courts={courts} openingHour={settings.opening_hour} closingHour={settings.closing_hour}/>
+            <AddBookingForm courts={courts} openingHour={settings.opening_hour} closingHour={settings.closing_hour} courtName={settings.court_name}/>
           </div>
         )}
       </div>

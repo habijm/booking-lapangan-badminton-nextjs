@@ -15,6 +15,39 @@ const MIDTRANS_API_URL = {
   production: 'https://api.midtrans.com',
 };
 
+// ── Daftar metode pembayaran yang diizinkan ──────────────────────────────────
+// Ubah array ini untuk menambah/kurangi metode pembayaran yang ditampilkan
+// di halaman Snap. Kosongkan array `[]` untuk menampilkan SEMUA metode aktif
+// di akun Midtrans Anda (default Midtrans jika field ini tidak dikirim).
+//
+// Kode yang tersedia:
+//   credit_card   → Kartu kredit/debit (Visa, Mastercard, JCB, Amex)
+//   bca_va        → BCA Virtual Account
+//   bni_va        → BNI Virtual Account
+//   bri_va        → BRI Virtual Account
+//   permata_va    → Permata Virtual Account
+//   other_va      → VA bank lain (Maybank, dll)
+//   echannel      → Mandiri Bill Payment
+//   gopay         → GoPay
+//   shopeepay     → ShopeePay
+//   qris          → QRIS
+//   indomaret     → Bayar tunai di Indomaret
+//   alfamart      → Bayar tunai di Alfamart
+//   akulaku       → Akulaku Paylater
+//
+// Bisa juga di-override lewat environment variable MIDTRANS_ENABLED_PAYMENTS
+// berupa string dipisah koma, contoh:
+//   MIDTRANS_ENABLED_PAYMENTS=qris,shopeepay,credit_card,bca_va,bni_va
+export const DEFAULT_ENABLED_PAYMENTS: string[] = ['qris', 'shopeepay', 'credit_card'];
+
+function getEnabledPayments(): string[] {
+  const envValue = process.env.MIDTRANS_ENABLED_PAYMENTS?.trim();
+  if (envValue) {
+    return envValue.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  return DEFAULT_ENABLED_PAYMENTS;
+}
+
 function getServerKey(): string {
   const key = process.env.MIDTRANS_SERVER_KEY?.trim();
   if (!key) throw new Error('MIDTRANS_SERVER_KEY is not set');
@@ -61,13 +94,16 @@ export async function createSnapToken(params: {
   const now = Date.now();
   const start = new Date(now + 5000);
 
+  const enabledPayments = getEnabledPayments();
 
   const body = {
     transaction_details: {
       order_id:     params.orderId,
       gross_amount: params.amount,
     },
-    enabled_payments: ['qris', 'shopeepay'],
+    // Kosongkan field ini (jangan kirim key-nya sama sekali) kalau ingin
+    // menampilkan semua metode pembayaran aktif di akun Midtrans Anda.
+    ...(enabledPayments.length > 0 ? { enabled_payments: enabledPayments } : {}),
     item_details: [
       {
         id:       'court-booking',
