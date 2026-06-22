@@ -38,7 +38,7 @@ const MIDTRANS_API_URL = {
 // Bisa juga di-override lewat environment variable MIDTRANS_ENABLED_PAYMENTS
 // berupa string dipisah koma, contoh:
 //   MIDTRANS_ENABLED_PAYMENTS=qris,shopeepay,credit_card,bca_va,bni_va
-export const DEFAULT_ENABLED_PAYMENTS: string[] = ['qris', 'shopeepay'];
+export const DEFAULT_ENABLED_PAYMENTS: string[] = ['qris', 'shopeepay', 'credit_card'];
 
 function getEnabledPayments(): string[] {
   const envValue = process.env.MIDTRANS_ENABLED_PAYMENTS?.trim();
