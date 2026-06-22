@@ -38,7 +38,7 @@ const MIDTRANS_API_URL = {
 // Bisa juga di-override lewat environment variable MIDTRANS_ENABLED_PAYMENTS
 // berupa string dipisah koma, contoh:
 //   MIDTRANS_ENABLED_PAYMENTS=qris,shopeepay,credit_card,bca_va,bni_va
-export const DEFAULT_ENABLED_PAYMENTS: string[] = ['qris', 'shopeepay', 'credit_card'];
+export const DEFAULT_ENABLED_PAYMENTS: string[] = ['qris', 'shopeepay'];
 
 function getEnabledPayments(): string[] {
   const envValue = process.env.MIDTRANS_ENABLED_PAYMENTS?.trim();
@@ -85,14 +85,26 @@ export async function createSnapToken(params: {
   const env = getEnv();
   const url = `${MIDTRANS_BASE_URL[env]}/snap/v1/transactions`;
 
-  const fmt = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ` +
-    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')} +0700`;
+  // PENTING: jangan pakai d.getHours()/getMinutes()/dst di sini — itu
+  // mengambil waktu berdasarkan timezone SERVER (yang di production
+  // biasanya UTC, bukan WIB), padahal kita hardcode label "+0700" di
+  // belakangnya. Kalau server jalan di UTC, hasilnya jadi mundur 7 jam
+  // dari waktu sebenarnya tapi diklaim sebagai WIB → Midtrans menolak
+  // dengan "expiry must be greater than the current time".
+  //
+  // Fix: geser timestamp UTC +7 jam dulu, baru ekstrak pakai getUTC*()
+  // (bukan getHours() versi lokal) — supaya hasilnya benar-benar jam
+  // dinding WIB, terlepas dari timezone server menjalankan kode ini.
+  const fmt = (d: Date) => {
+    const wib = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+    return `${wib.getUTCFullYear()}-${String(wib.getUTCMonth() + 1).padStart(2, '0')}-${String(wib.getUTCDate()).padStart(2, '0')} ` +
+      `${String(wib.getUTCHours()).padStart(2, '0')}:${String(wib.getUTCMinutes()).padStart(2, '0')}:${String(wib.getUTCSeconds()).padStart(2, '0')} +0700`;
+  };
 
   // Midtrans requires expiry.start_time to be strictly >= current time.
-  // Add a small buffer (5 seconds) to avoid "expiry must be greater than the current time".
+  // Buffer 15 detik untuk antisipasi sedikit clock drift / latency request.
   const now = Date.now();
-  const start = new Date(now + 5000);
+  const start = new Date(now + 15000);
 
   const enabledPayments = getEnabledPayments();
 
