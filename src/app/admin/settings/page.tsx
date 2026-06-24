@@ -13,6 +13,7 @@ import { AdminCard, AdminSectionHeader, AdminButton } from '@/components/admin/A
 import { DEFAULT_SETTINGS, SETTINGS_LABELS, CourtSettings, BannerType, parseClosedDates } from '@/lib/config';
 import BookingModeSwitch from '@/components/admin/BookingModeSwitch';
 import { BookingMode } from '@/types/payment';
+import { WhatsAppTemplatesEditor } from '@/components/admin/WhatsAppTemplatesEditor';
 
 type SettingsFlat = Record<string, string>;
 
@@ -244,6 +245,8 @@ export default function SettingsPage() {
                     </div>
                   )}
                 </AdminCard>
+
+                <WhatsAppTemplatesEditor />
 
                 <BookingModeSwitch
                   initialMode={(settings.booking_mode ?? 'whatsapp') as BookingMode}

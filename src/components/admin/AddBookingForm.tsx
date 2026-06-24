@@ -50,6 +50,8 @@ export function AddBookingForm({ courts, openingHour, closingHour, courtName = '
   const [emailSent, setEmailSent]     = useState(false);
   const [notifLoading, setNotifLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
+  const [notifError, setNotifError]   = useState('');
+  const [emailError, setEmailError]   = useState('');
 
   useEffect(() => {
     async function load() {
@@ -159,40 +161,61 @@ export function AddBookingForm({ courts, openingHour, closingHour, courtName = '
       amount,
       courtName:     activeCourt?.name ?? courtName,
     });
-    setNotifSent(false); setEmailSent(false);
+    setNotifSent(false); setEmailSent(false); setNotifError(''); setEmailError('');
     onSuccess?.();
   };
 
   // Kirim notifikasi WA via Fonnte
   const handleSendWA = async () => {
     if (!successData) return;
-    setNotifLoading(true);
+    setNotifLoading(true); setNotifError('');
     try {
-      await fetch('/api/notify', {
+      const res  = await fetch('/api/notify', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId: successData.bookingId, type: 'confirmed' }),
       });
-      setNotifSent(true);
-    } catch { /* ignore */ }
+      const raw = await res.text();
+      let data: { error?: string; success?: boolean } = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch { /* respons bukan JSON */ }
+
+      if (!res.ok || data.success === false) {
+        setNotifError(data.error ?? `Gagal mengirim WhatsApp (status ${res.status})`);
+      } else {
+        setNotifSent(true);
+      }
+    } catch {
+      setNotifError('Gagal terhubung ke server. Cek koneksi internet.');
+    }
     setNotifLoading(false);
   };
 
   // Kirim email konfirmasi booking
   const handleSendEmail = async () => {
     if (!successData?.customerEmail) return;
-    setEmailLoading(true);
+    setEmailLoading(true); setEmailError('');
     try {
       const res = await fetch('/api/booking/notify-email', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ booking_id: successData.bookingId }),
       });
-      if (res.ok) setEmailSent(true);
-    } catch { /* ignore */ }
+      const raw = await res.text();
+      let data: { error?: string; success?: boolean } = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch { /* respons bukan JSON, mis. halaman 404/500 */ }
+
+      if (!res.ok) {
+        setEmailError(data.error ?? `Gagal mengirim email (status ${res.status})`);
+      } else {
+        setEmailSent(true);
+      }
+    } catch {
+      setEmailError('Gagal terhubung ke server. Cek koneksi internet dan coba lagi.');
+    }
     setEmailLoading(false);
   };
 
   const handleReset = () => {
     setSuccessData(null);
+    setNotifError(''); setEmailError('');
     setForm(f => ({ ...f, customer_name:'', customer_phone:'', customer_email:'', notes:'' }));
   };
 
@@ -244,33 +267,54 @@ export function AddBookingForm({ courts, openingHour, closingHour, courtName = '
           <p className="text-[10px] font-bold text-[#74C69D]/40 uppercase tracking-wide">Kirim Konfirmasi ke Customer</p>
 
           {/* WA Notifikasi */}
-          <button onClick={handleSendWA} disabled={notifLoading || notifSent}
-            className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-bold text-sm transition-all ${
-              notifSent
-                ? 'bg-[#25D366]/15 border border-[#25D366]/30 text-[#4ADE80] cursor-default'
-                : 'bg-[#25D366]/15 border border-[#25D366]/25 text-[#4ADE80] hover:bg-[#25D366]/25 active:scale-95'
-            } disabled:opacity-60`}>
-            {notifLoading
-              ? <><span className="w-3.5 h-3.5 border-2 border-[#4ADE80]/30 border-t-[#4ADE80] rounded-full animate-spin"/>Mengirim WA...</>
-              : notifSent
-                ? <>✅ WA Terkirim</>
-                : <>💬 Kirim Notifikasi WhatsApp</>}
-          </button>
+          <div>
+            <button onClick={handleSendWA} disabled={notifLoading || notifSent}
+              className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-bold text-sm transition-all ${
+                notifSent
+                  ? 'bg-[#25D366]/15 border border-[#25D366]/30 text-[#4ADE80] cursor-default'
+                  : 'bg-[#25D366]/15 border border-[#25D366]/25 text-[#4ADE80] hover:bg-[#25D366]/25 active:scale-95'
+              } disabled:opacity-60`}>
+              {notifLoading
+                ? <><span className="w-3.5 h-3.5 border-2 border-[#4ADE80]/30 border-t-[#4ADE80] rounded-full animate-spin"/>Mengirim WA...</>
+                : notifSent
+                  ? <>✅ WA Terkirim</>
+                  : <>💬 Kirim Notifikasi WhatsApp</>}
+            </button>
+            {notifError && (
+              <p className="text-red-400 text-xs mt-1.5 flex items-start gap-1.5">
+                <span className="flex-shrink-0">⚠️</span>
+                <span>{notifError} — <button onClick={handleSendWA} className="underline hover:text-red-300">coba lagi</button></span>
+              </p>
+            )}
+          </div>
 
           {/* Email konfirmasi — hanya jika ada email */}
           {successData.customerEmail ? (
-            <button onClick={handleSendEmail} disabled={emailLoading || emailSent}
-              className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-bold text-sm transition-all ${
-                emailSent
-                  ? 'bg-[#52B788]/15 border border-[#52B788]/30 text-[#74C69D] cursor-default'
-                  : 'bg-[#52B788]/8 border border-[#52B788]/20 text-[#74C69D]/70 hover:bg-[#52B788]/15 hover:text-[#74C69D] active:scale-95'
-              } disabled:opacity-60`}>
-              {emailLoading
-                ? <><span className="w-3.5 h-3.5 border-2 border-[#74C69D]/30 border-t-[#74C69D] rounded-full animate-spin"/>Mengirim Email...</>
-                : emailSent
-                  ? <>✅ Email Konfirmasi Terkirim</>
-                  : <>✉️ Kirim Email ke {successData.customerEmail}</>}
-            </button>
+            <div>
+              <button onClick={handleSendEmail} disabled={emailLoading || emailSent}
+                className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  emailSent
+                    ? 'bg-[#52B788]/15 border border-[#52B788]/30 text-[#74C69D] cursor-default'
+                    : 'bg-[#52B788]/8 border border-[#52B788]/20 text-[#74C69D]/70 hover:bg-[#52B788]/15 hover:text-[#74C69D] active:scale-95'
+                } disabled:opacity-60`}>
+                {emailLoading
+                  ? <><span className="w-3.5 h-3.5 border-2 border-[#74C69D]/30 border-t-[#74C69D] rounded-full animate-spin"/>Mengirim Email...</>
+                  : emailSent
+                    ? <>✅ Email Konfirmasi Terkirim</>
+                    : <>✉️ Kirim Email ke {successData.customerEmail}</>}
+              </button>
+              {emailError && (
+                <div className="mt-1.5 p-2.5 rounded-lg border border-red-500/20 bg-red-500/8 text-red-400 text-xs">
+                  <div className="flex items-start gap-1.5">
+                    <span className="flex-shrink-0">⚠️</span>
+                    <span>{emailError}</span>
+                  </div>
+                  <button onClick={handleSendEmail} className="underline hover:text-red-300 mt-1 inline-block">
+                    Coba kirim lagi
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/8 bg-white/3 text-white/25 text-xs">
               ✉️ Email tidak diisi — tidak bisa kirim konfirmasi email
