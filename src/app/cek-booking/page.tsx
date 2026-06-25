@@ -6,6 +6,12 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { PAYMENT_STATUS_CONFIG, PaymentStatus } from '@/types/payment';
 
+// ── Feature toggle ────────────────────────────────────────────────────────────
+// Fitur "Cek Booking via 4 digit terakhir HP" dinonaktifkan sementara.
+// Untuk mengaktifkan kembali: ubah jadi `true`, lalu tambahkan kembali link
+// "Cek Booking" di Navbar.tsx (desktop + mobile menu).
+const CEK_BOOKING_ENABLED = false;
+
 interface BookingResult {
   id: string;
   customer_name: string;
@@ -42,7 +48,11 @@ function CekBookingContent() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Jika ada booking_id langsung di URL → langsung fetch status
+  // (hook ini HARUS tetap dipanggil tanpa kondisi apapun di atasnya,
+  // sesuai Rules of Hooks React — guard fitur dilakukan di dalam effect,
+  // bukan dengan early-return sebelum hook ini dipanggil)
   useEffect(() => {
+    if (!CEK_BOOKING_ENABLED) return;
     if (directId) {
       fetch(`/api/payment/status?booking_id=${directId}`, { cache:'no-store' })
         .then(r => r.json())
@@ -55,6 +65,30 @@ function CekBookingContent() {
         }).catch(() => {});
     }
   }, [directId]);
+
+  // ── Fitur dinonaktifkan ───────────────────────────────────────────────────
+  // Guard ini ditaruh SETELAH semua hooks di atas dipanggil, supaya urutan
+  // pemanggilan hook tetap konsisten di setiap render (Rules of Hooks).
+  if (!CEK_BOOKING_ENABLED) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#0A1F12' }}>
+        <div className="max-w-md w-full text-center space-y-4">
+          <div className="w-16 h-16 rounded-2xl border border-[#52B788]/20 bg-[#52B788]/5 flex items-center justify-center mx-auto text-3xl">
+            🔒
+          </div>
+          <h1 className="font-bold text-white text-lg font-display">Fitur Sedang Tidak Tersedia</h1>
+          <p className="text-[#74C69D]/50 text-sm leading-relaxed">
+            Fitur cek status booking mandiri sedang dinonaktifkan.<br/>
+            Untuk info status booking, silakan hubungi admin langsung.
+          </p>
+          <button onClick={() => router.push('/')}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#40916C] hover:bg-[#52B788] text-white font-bold text-sm transition-all active:scale-95">
+            🏠 Kembali ke Beranda
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
