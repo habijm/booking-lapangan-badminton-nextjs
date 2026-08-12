@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { notifyConfirmed } from '@/lib/whatsapp';
-import { sendInvoiceByBookingId } from '@/app/api/payment/invoice/route';
+import { sendInvoiceByBookingId } from '@/lib/invoice-email';
 import { Booking } from '@/types/booking';
 
 function supabaseAdmin() {

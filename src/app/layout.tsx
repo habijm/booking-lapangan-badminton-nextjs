@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 const COURT_NAME = process.env.NEXT_PUBLIC_COURT_NAME ?? 'GOR Badminton';
-const BASE_URL   = process.env.NEXT_PUBLIC_SITE_URL   ?? 'https://your-domain.com';
+const BASE_URL    = process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'http://localhost:3000';
 
 export const viewport: Viewport = {
   width:              'device-width',
@@ -19,6 +19,7 @@ export const metadata: Metadata = {
     template: `%s | ${COURT_NAME}`,
   },
   description: `Booking lapangan badminton di ${COURT_NAME} secara online. Cek jadwal real-time dan booking via WhatsApp.`,
+  metadataBase: new URL(BASE_URL),
 
   // ── Icons ──────────────────────────────────────────────────────────────────
   icons: {
