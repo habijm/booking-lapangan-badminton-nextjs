@@ -6,7 +6,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifySignature, getTransactionStatus } from '@/lib/midtrans';
+import { sendPaidBookingNotifications } from '@/lib/payment-notifications';
 import { MidtransNotification, mapMidtransStatus } from '@/types/payment';
+
+function getBaseUrl(req: NextRequest) {
+  const envUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (envUrl) return envUrl.replace(/\/$/, '');
+
+  const forwardedHost = req.headers.get('x-forwarded-host') ?? req.headers.get('host');
+  const forwardedProto = req.headers.get('x-forwarded-proto') ?? 'http';
+
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`.replace(/\/$/, '');
+  }
+
+  return '';
+}
 
 function supabaseAdmin() {
   return createClient(
@@ -21,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const notification: MidtransNotification = await req.json();
-    console.log('[Midtrans callback]', notification.order_id, notification.transaction_status);
+    console.log('[Midtrans callback] Notifikasi masuk:', notification.order_id, notification.transaction_status);
 
     // ── Verifikasi signature ────────────────────────────────────────────────
     const isValid = await verifySignature(notification);
@@ -41,11 +56,12 @@ export async function POST(req: NextRequest) {
     const transactionId   = payload.transaction_id;
 
     const paymentStatus = mapMidtransStatus(txStatus, fraudStatus);
+    console.log('[Midtrans callback] paymentStatus terpetakan:', paymentStatus);
 
     // ── Cari booking berdasarkan payment_id (order_id) ──────────────────────
     const { data: booking, error: findErr } = await supabase
       .from('bookings')
-      .select('id, status, payment_status, customer_phone, customer_name')
+      .select('id, status, payment_status, customer_phone, customer_name, customer_email, invoice_sent_at, court_id, booking_date, start_time, end_time, duration_hours')
       .eq('payment_id', orderId)
       .single();
 
@@ -55,26 +71,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Booking not found, ignored' }, { status: 200 });
     }
 
-    // ── Jangan update kalau sudah paid ─────────────────────────────────────
+    // ── Kalau booking sudah paid, tetap lanjutkan blok notifikasi bila belum terkirim ──
     if (booking.payment_status === 'paid' && paymentStatus !== 'refunded') {
-      return NextResponse.json({ message: 'Already paid, no update needed' }, { status: 200 });
+      console.log('[Midtrans callback] Booking sudah paid sebelumnya, status booking tidak diubah lagi.');
+    } else {
+      // ── Update status booking ───────────────────────────────────────────────
+      const updates: Record<string, unknown> = {
+        payment_status: paymentStatus,
+        payment_method: paymentType,
+        transaction_id: transactionId,
+      };
+
+      if (paymentStatus === 'paid') {
+        updates.status  = 'confirmed';   // otomatis konfirmasi setelah bayar
+        updates.paid_at = new Date().toISOString();
+      } else if (['failed', 'expired'].includes(paymentStatus)) {
+        updates.status = 'cancelled';   // batalkan booking kalau gagal/expired
+      }
+
+      await supabase.from('bookings').update(updates).eq('id', booking.id);
     }
 
-    // ── Update status booking ───────────────────────────────────────────────
-    const updates: Record<string, unknown> = {
-      payment_status: paymentStatus,
-      payment_method: paymentType,
-      transaction_id: transactionId,
-    };
-
-    if (paymentStatus === 'paid') {
-      updates.status   = 'confirmed';   // otomatis konfirmasi setelah bayar
-      updates.paid_at  = new Date().toISOString();
-    } else if (['failed', 'expired'].includes(paymentStatus)) {
-      updates.status   = 'cancelled';   // batalkan booking kalau gagal/expired
-    }
-
-    await supabase.from('bookings').update(updates).eq('id', booking.id);
+    const currentBooking = paymentStatus === 'paid'
+      ? { ...booking, payment_status: 'paid', invoice_sent_at: booking.invoice_sent_at ?? null }
+      : booking;
 
     // ── Simpan log pembayaran ───────────────────────────────────────────────
     await supabase.from('payment_logs').insert({
@@ -88,26 +108,37 @@ export async function POST(req: NextRequest) {
       raw_payload:        payload as unknown as Record<string, unknown>,
     });
 
-    // ── Kirim notifikasi WA kalau sudah paid (opsional) ─────────────────────
+    // ── Kirim notifikasi WA + email invoice kalau sudah paid ────────────────
+    // Pakai "claim" atomic di invoice_sent_at supaya webhook & polling fallback
+    // tidak sama-sama trigger notifikasi dua kali (race condition).
     if (paymentStatus === 'paid') {
-      try {
-        const { data: settingsData } = await supabase.from('settings').select('key, value');
-        const map = Object.fromEntries((settingsData ?? []).map((r: { key: string; value: string }) => [r.key, r.value]));
+      console.log('[Midtrans callback] Status paid, mencoba kirim notifikasi untuk booking', booking.id);
+      console.log('[Midtrans callback] notification gate', {
+        invoiceSentAt: currentBooking.invoice_sent_at ?? null,
+        bookingId: booking.id,
+      });
 
-        if (map.fonnte_enabled === 'true') {
-          fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/notify`, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ bookingId: booking.id, type: 'confirmed' }),
-          }).catch(console.error);
+      if (currentBooking.invoice_sent_at) {
+        console.log('[Midtrans callback] invoice_sent_at sudah terisi, skip notifikasi.');
+      } else {
+        try {
+          console.log('[Midtrans callback] invoking payment notification helper', { bookingId: booking.id });
+          const notificationOk = await sendPaidBookingNotifications(booking as Parameters<typeof sendPaidBookingNotifications>[0]);
+
+          if (notificationOk) {
+            await supabase.from('bookings').update({ invoice_sent_at: new Date().toISOString() }).eq('id', booking.id);
+            console.log('[Midtrans callback] invoice_sent_at set after successful notifications', { bookingId: booking.id });
+          } else {
+            console.log('[Midtrans callback] Notifikasi belum lengkap, invoice_sent_at tidak diisi agar bisa dicoba ulang.');
+          }
+        } catch (notifErr) {
+          console.error('[Midtrans callback] Notification error:', notifErr);
+          // Jangan fail karena notifikasi
         }
-      } catch (notifErr) {
-        console.error('[Midtrans callback] Notification error:', notifErr);
-        // Jangan fail karena notifikasi
       }
     }
 
-    console.log(`[Midtrans callback] Updated booking ${booking.id}: payment=${paymentStatus}, booking=${updates.status ?? 'unchanged'}`);
+    console.log(`[Midtrans callback] Updated booking ${booking.id}: payment=${paymentStatus}`);
     return NextResponse.json({ message: 'OK' }, { status: 200 });
 
   } catch (err) {

@@ -84,7 +84,6 @@ export function generatePublicMetadata(settings: CourtSettings): Metadata {
     // ── PWA / Mobile ─────────────────────────────────────────────────────────
     applicationName: settings.court_name,
     manifest:        '/manifest.json',
-    themeColor:      '#0D1F16',
     appleWebApp: {
       capable:       true,
       title:         settings.court_name,

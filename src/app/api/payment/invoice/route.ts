@@ -31,6 +31,10 @@ export async function POST(req: NextRequest) {
 }
 
 async function sendInvoice(bookingId: string | null) {
+  return sendInvoiceByBookingId(bookingId);
+}
+
+export async function sendInvoiceByBookingId(bookingId: string | null) {
   if (!bookingId) return NextResponse.json({ error: 'booking_id required' }, { status: 400 });
   if (!process.env.RESEND_API_KEY) return NextResponse.json({ error: 'Email tidak dikonfigurasi' }, { status: 503 });
 

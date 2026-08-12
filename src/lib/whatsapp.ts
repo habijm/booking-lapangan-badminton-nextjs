@@ -146,7 +146,8 @@ async function sendFonnte(phone: string, message: string): Promise<SendResult> {
 
 /** Notifikasi ke customer: booking dikonfirmasi */
 export async function notifyConfirmed(
-  booking: Booking, courtName: string, customTemplate?: string,
+  booking: Pick<Booking, 'id' | 'customer_name' | 'customer_phone' | 'booking_date' | 'start_time' | 'end_time' | 'duration_hours'>,
+  courtName: string, customTemplate?: string,
 ): Promise<SendResult> {
   const dateStr = format(parseISO(booking.booking_date), 'EEEE, d MMMM yyyy', { locale: id });
   const vars = {
@@ -164,7 +165,8 @@ export async function notifyConfirmed(
 
 /** Notifikasi ke customer: booking dibatalkan */
 export async function notifyCancelled(
-  booking: Booking, courtName: string, reason?: string, customTemplate?: string,
+  booking: Pick<Booking, 'id' | 'customer_name' | 'customer_phone' | 'booking_date' | 'start_time' | 'end_time' | 'duration_hours'>,
+  courtName: string, reason?: string, customTemplate?: string,
 ): Promise<SendResult> {
   const dateStr = format(parseISO(booking.booking_date), 'EEEE, d MMMM yyyy', { locale: id });
   const vars = {
@@ -184,7 +186,8 @@ export async function notifyCancelled(
 
 /** Notifikasi ke customer: booking pending (menunggu konfirmasi) */
 export async function notifyPending(
-  booking: Booking, courtName: string, waNumber: string, customTemplate?: string,
+  booking: Pick<Booking, 'id' | 'customer_name' | 'customer_phone' | 'booking_date' | 'start_time' | 'end_time' | 'duration_hours'>,
+  courtName: string, waNumber: string, customTemplate?: string,
 ): Promise<SendResult> {
   const dateStr = format(parseISO(booking.booking_date), 'EEEE, d MMMM yyyy', { locale: id });
   const vars = {
@@ -203,7 +206,8 @@ export async function notifyPending(
 
 /** Pengingat H-1 ke customer */
 export async function notifyReminder(
-  booking: Booking, courtName: string, customTemplate?: string,
+  booking: Pick<Booking, 'id' | 'customer_name' | 'customer_phone' | 'booking_date' | 'start_time' | 'end_time' | 'duration_hours'>,
+  courtName: string, customTemplate?: string,
 ): Promise<SendResult> {
   const dateStr = format(parseISO(booking.booking_date), 'EEEE, d MMMM yyyy', { locale: id });
   const vars = {

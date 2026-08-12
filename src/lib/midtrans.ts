@@ -81,6 +81,7 @@ export async function createSnapToken(params: {
     error:   string;
     pending: string;
   };
+  notificationUrl?: string;
 }): Promise<SnapTokenResponse> {
   const env = getEnv();
   const url = `${MIDTRANS_BASE_URL[env]}/snap/v1/transactions`;
@@ -134,6 +135,7 @@ export async function createSnapToken(params: {
       error:   params.callbackUrl.error,
       pending: params.callbackUrl.pending,
     },
+    ...(params.notificationUrl ? { notification_url: params.notificationUrl } : {}),
     expiry: {
       // Use start_time slightly in the future to avoid Midtrans 400.
       start_time: fmt(start),

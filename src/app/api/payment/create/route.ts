@@ -4,7 +4,19 @@ import { createClient } from '@supabase/supabase-js';
 import { createSnapToken, generateOrderId, buildCallbackUrls } from '@/lib/midtrans';
 import { CreateBookingPayload } from '@/types/payment';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+function getBaseUrl(req: NextRequest) {
+  const envUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (envUrl) return envUrl.replace(/\/$/, '');
+
+  const forwardedHost = req.headers.get('x-forwarded-host') ?? req.headers.get('host');
+  const forwardedProto = req.headers.get('x-forwarded-proto') ?? 'http';
+
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`.replace(/\/$/, '');
+  }
+
+  return 'http://localhost:3000';
+}
 
 function supabaseAdmin() {
   return createClient(
@@ -93,11 +105,18 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Buat booking di DB ──────────────────────────────────────────────────
+    // PENTING: customer_email WAJIB dimasukkan di sini. Sebelumnya field ini
+    // diterima dari body tapi tidak pernah dimasukkan ke object insert,
+    // sehingga kolom customer_email di tabel bookings selalu NULL meskipun
+    // customer sudah mengisi emailnya di form booking. Akibatnya endpoint
+    // /api/payment/invoice selalu gagal dengan error "Email pelanggan tidak
+    // tersedia" karena memang tidak ada email tersimpan untuk booking itu.
     const { data: booking, error: bookingErr } = await supabase
       .from('bookings')
       .insert({
         customer_name:   customer_name.trim(),
         customer_phone:  customer_phone.trim(),
+        customer_email:  customer_email?.trim() || null,
         booking_date,
         start_time,
         end_time,
@@ -136,7 +155,8 @@ export async function POST(req: NextRequest) {
         endTime:       end_time,
         durationHours: duration_hours,
         expiryMinutes: expiryMins,
-        callbackUrl:   buildCallbackUrls(BASE_URL, bookingId),
+        callbackUrl:   buildCallbackUrls(getBaseUrl(req), bookingId),
+        notificationUrl: `${getBaseUrl(req)}/api/payment/callback`,
       });
       snapToken = snap.token;
       snapUrl   = snap.redirect_url;
