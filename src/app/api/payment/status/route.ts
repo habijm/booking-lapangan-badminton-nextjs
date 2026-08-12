@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getTransactionStatus } from '@/lib/midtrans';
 import { sendPaidBookingNotifications } from '@/lib/payment-notifications';
 import { mapMidtransStatus } from '@/types/payment';
+import { sendPostPaymentNotifications } from '@/lib/post-payment-notify';
 
 function supabaseAdmin() {
   return createClient(
@@ -95,10 +96,16 @@ export async function GET(req: NextRequest) {
           await supabase.from('bookings').update(updates).eq('id', bookingId);
           Object.assign(booking, updates);
 
-          // ── Notifikasi WA + email ────────────────────────────────────────
+          // ── Kirim notifikasi WA + Email begitu status berubah jadi paid ──
+          // Jalur ini penting untuk local dev, karena webhook Midtrans tidak
+          // bisa reach localhost — polling inilah yang jadi satu-satunya
+          // trigger notifikasi saat development.
           if (newStatus === 'paid') {
-            console.log('[payment/status] Status berubah jadi paid, mencoba kirim notifikasi untuk booking', bookingId);
-            await trySendIfNeeded();
+            try {
+              await sendPostPaymentNotifications(bookingId);
+            } catch (notifErr) {
+              console.error('[payment/status] Notification error:', notifErr);
+            }
           }
         }
       }

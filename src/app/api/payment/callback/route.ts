@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import { verifySignature, getTransactionStatus } from '@/lib/midtrans';
 import { sendPaidBookingNotifications } from '@/lib/payment-notifications';
 import { MidtransNotification, mapMidtransStatus } from '@/types/payment';
+import { sendPostPaymentNotifications } from '@/lib/post-payment-notify';
 
 function getBaseUrl(req: NextRequest) {
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -108,33 +109,16 @@ export async function POST(req: NextRequest) {
       raw_payload:        payload as unknown as Record<string, unknown>,
     });
 
-    // ── Kirim notifikasi WA + email invoice kalau sudah paid ────────────────
-    // Pakai "claim" atomic di invoice_sent_at supaya webhook & polling fallback
-    // tidak sama-sama trigger notifikasi dua kali (race condition).
+    // ── Kirim notifikasi WA + Email kalau sudah paid ─────────────────────────
+    // PENTING: di-AWAIT (bukan fire-and-forget). Fetch tanpa await ke endpoint
+    // sendiri rawan terpotong di lingkungan serverless karena function bisa
+    // dimatikan begitu response callback ini dikirim ke Midtrans.
     if (paymentStatus === 'paid') {
-      console.log('[Midtrans callback] Status paid, mencoba kirim notifikasi untuk booking', booking.id);
-      console.log('[Midtrans callback] notification gate', {
-        invoiceSentAt: currentBooking.invoice_sent_at ?? null,
-        bookingId: booking.id,
-      });
-
-      if (currentBooking.invoice_sent_at) {
-        console.log('[Midtrans callback] invoice_sent_at sudah terisi, skip notifikasi.');
-      } else {
-        try {
-          console.log('[Midtrans callback] invoking payment notification helper', { bookingId: booking.id });
-          const notificationOk = await sendPaidBookingNotifications(booking as Parameters<typeof sendPaidBookingNotifications>[0]);
-
-          if (notificationOk) {
-            await supabase.from('bookings').update({ invoice_sent_at: new Date().toISOString() }).eq('id', booking.id);
-            console.log('[Midtrans callback] invoice_sent_at set after successful notifications', { bookingId: booking.id });
-          } else {
-            console.log('[Midtrans callback] Notifikasi belum lengkap, invoice_sent_at tidak diisi agar bisa dicoba ulang.');
-          }
-        } catch (notifErr) {
-          console.error('[Midtrans callback] Notification error:', notifErr);
-          // Jangan fail karena notifikasi
-        }
+      try {
+        await sendPostPaymentNotifications(booking.id);
+      } catch (notifErr) {
+        console.error('[Midtrans callback] Notification error:', notifErr);
+        // Jangan fail response callback hanya karena notifikasi gagal
       }
     }
 
