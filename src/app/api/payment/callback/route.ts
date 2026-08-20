@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { waitUntil } from '@vercel/functions';
 import { verifySignature, getTransactionStatus } from '@/lib/midtrans';
 import { MidtransNotification, mapMidtransStatus } from '@/types/payment';
 import { sendPostPaymentNotifications } from '@/lib/post-payment-notify';
@@ -92,10 +93,6 @@ export async function POST(req: NextRequest) {
       await supabase.from('bookings').update(updates).eq('id', booking.id);
     }
 
-    const currentBooking = paymentStatus === 'paid'
-      ? { ...booking, payment_status: 'paid', invoice_sent_at: booking.invoice_sent_at ?? null }
-      : booking;
-
     // ── Simpan log pembayaran ───────────────────────────────────────────────
     await supabase.from('payment_logs').insert({
       booking_id:         booking.id,
@@ -109,16 +106,29 @@ export async function POST(req: NextRequest) {
     });
 
     // ── Kirim notifikasi WA + Email kalau sudah paid ─────────────────────────
-    // PENTING: di-AWAIT (bukan fire-and-forget). Fetch tanpa await ke endpoint
-    // sendiri rawan terpotong di lingkungan serverless karena function bisa
-    // dimatikan begitu response callback ini dikirim ke Midtrans.
+    // PENTING: pakai `waitUntil`, BUKAN `await` langsung dan BUKAN pula
+    // fire-and-forget biasa. Midtrans mengharapkan response cepat dari
+    // notification URL — kalau responsnya lambat/timeout, Midtrans bisa
+    // menganggap gagal dan mengirim ulang notifikasi berkali-kali. Dengan
+    // `waitUntil`, response "OK" langsung dikirim ke Midtrans, sementara
+    // pengiriman WA + email tetap dijamin selesai di background (berbeda
+    // dari fire-and-forget biasa yang rawan terpotong begitu response
+    // terkirim di lingkungan serverless).
     if (paymentStatus === 'paid') {
-      try {
-        await sendPostPaymentNotifications(booking.id);
-      } catch (notifErr) {
-        console.error('[Midtrans callback] Notification error:', notifErr);
-        // Jangan fail response callback hanya karena notifikasi gagal
-      }
+      waitUntil(
+        sendPostPaymentNotifications(booking.id)
+          .then((result) => {
+            console.log('[Midtrans callback] Hasil notifikasi (background):', result);
+            if (result.attempted && (result.waOk === false || result.emailOk === false)) {
+              console.error(
+                `[Midtrans callback] Notifikasi SEBAGIAN GAGAL untuk booking ${booking.id} — akan dicoba ulang otomatis oleh polling/cron.`
+              );
+            }
+          })
+          .catch((notifErr) => {
+            console.error('[Midtrans callback] Notification error (background):', notifErr);
+          })
+      );
     }
 
     console.log(`[Midtrans callback] Updated booking ${booking.id}: payment=${paymentStatus}`);

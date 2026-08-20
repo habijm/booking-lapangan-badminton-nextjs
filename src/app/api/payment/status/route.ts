@@ -1,6 +1,7 @@
 // src/app/api/payment/status/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { waitUntil } from '@vercel/functions';
 import { getTransactionStatus } from '@/lib/midtrans';
 import { mapMidtransStatus } from '@/types/payment';
 import { sendPostPaymentNotifications } from '@/lib/post-payment-notify';
@@ -69,19 +70,26 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Kirim notifikasi WA + Email kalau sudah paid ────────────────────────
-  // SATU-SATUNYA jalur pengiriman (tidak ada lagi jalur duplikat lama).
-  // Fungsi ini idempotent & aman dipanggil berkali-kali: channel yang sudah
-  // sukses tidak akan dikirim ulang, channel yang masih gagal akan dicoba
-  // lagi di setiap pemanggilan berikutnya (poll berikutnya / webhook / cron).
+  // PENTING (fix "loading lama setelah bayar"): sebelumnya notifikasi
+  // di-`await` di sini, artinya browser customer menunggu WA + email
+  // benar-benar selesai terkirim (bisa 2-6 detik) sebelum halaman status
+  // sempat menampilkan "Pembayaran Berhasil". Dengan `waitUntil`, response
+  // langsung dikirim begitu status booking diketahui, sementara notifikasi
+  // tetap terkirim penuh di background — TIDAK dipotong seperti
+  // fire-and-forget biasa, karena Vercel menjamin promise ini selesai
+  // sebelum function instance dimatikan.
   if (booking.payment_status === 'paid') {
-    try {
-      const result = await sendPostPaymentNotifications(bookingId);
-      if (result.attempted) {
-        console.log('[payment/status] Hasil notifikasi:', { bookingId, ...result });
-      }
-    } catch (notifErr) {
-      console.error('[payment/status] Notification error:', notifErr);
-    }
+    waitUntil(
+      sendPostPaymentNotifications(bookingId)
+        .then((result) => {
+          if (result.attempted) {
+            console.log('[payment/status] Hasil notifikasi (background):', { bookingId, ...result });
+          }
+        })
+        .catch((notifErr) => {
+          console.error('[payment/status] Notification error (background):', notifErr);
+        })
+    );
   }
 
   return NextResponse.json({ booking });
