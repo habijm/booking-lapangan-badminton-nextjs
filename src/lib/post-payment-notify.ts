@@ -5,15 +5,24 @@
 //   2. Client polling (api/payment/status/route.ts) — fallback saat webhook
 //      tidak bisa reach server (mis. localhost saat development)
 //
-// PENTING: fungsi ini HARUS di-`await` oleh pemanggil, JANGAN fire-and-forget.
-// Di lingkungan serverless, request yang sudah selesai (response terkirim)
-// bisa membuat proses berhenti sebelum fetch/promise yang tidak di-await
-// sempat selesai — inilah sebabnya notifikasi otomatis ke customer
-// sebelumnya sering tidak terkirim padahal kode "kelihatan benar".
+// PENTING (fix bug "notifikasi hilang permanen"):
+// Versi lama menandai `invoice_sent_at` SEBELUM benar-benar mengirim, dan
+// error pengiriman hanya di-log tanpa pernah membuat sistem mencoba lagi.
+// Akibatnya kalau percobaan pertama gagal (token Fonnte salah, domain
+// Resend belum diverifikasi, dll), customer TIDAK PERNAH dapat notifikasi
+// dan tidak ada cara untuk retry — sementara data booking & dashboard admin
+// tetap terlihat normal karena itu proses terpisah.
 //
-// Idempotency: kolom `invoice_sent_at` dipakai sebagai klaim atomik lewat
-// `.is('invoice_sent_at', null)` supaya webhook & polling yang jalan hampir
-// bersamaan tidak mengirim notifikasi dobel.
+// Versi baru ini:
+//   - Melacak WA & email SECARA TERPISAH (wa_notified_at / email_notified_at)
+//     supaya channel yang sukses tidak diulang, tapi channel yang gagal
+//     tetap bisa dicoba lagi di panggilan berikutnya (webhook retry dari
+//     Midtrans, polling berikutnya, atau cron reconciliation).
+//   - Memakai `notification_lock_at` sebagai lock SEMENTARA (bukan penanda
+//     permanen) untuk mencegah pengiriman dobel saat webhook & polling
+//     jalan hampir bersamaan. Lock otomatis dilepas di blok `finally`,
+//     dan dianggap basi (boleh diambil ulang) setelah 2 menit kalau proses
+//     sebelumnya crash sebelum sempat melepas lock.
 
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
@@ -30,51 +39,122 @@ function supabaseAdmin() {
   );
 }
 
-export async function sendPostPaymentNotifications(bookingId: string): Promise<void> {
+const LOCK_STALE_MS = 2 * 60 * 1000; // 2 menit
+
+export interface NotifyResult {
+  attempted: boolean;
+  waOk: boolean | null;
+  emailOk: boolean | null;
+  skipped?: 'locked' | 'not_paid' | 'not_found' | 'already_done';
+}
+
+export async function sendPostPaymentNotifications(bookingId: string): Promise<NotifyResult> {
   const supabase = supabaseAdmin();
 
-  // ── Klaim idempotency secara atomik ─────────────────────────────────────
-  // Update invoice_sent_at HANYA jika masih NULL. Kalau tidak ada row yang
-  // ter-update (claimed === null), berarti proses lain (webhook/polling)
-  // sudah lebih dulu mengklaim & mengirim — aman untuk di-skip.
-  const { data: claimed, error: claimErr } = await supabase
+  const { data: booking, error: fetchErr } = await supabase
     .from('bookings')
-    .update({ invoice_sent_at: new Date().toISOString() })
-    .eq('id', bookingId)
-    .is('invoice_sent_at', null)
     .select('*, court:courts(id,name)')
+    .eq('id', bookingId)
     .single();
 
-  if (claimErr || !claimed) {
-    return; // sudah pernah dikirim, atau booking tidak ditemukan
+  if (fetchErr || !booking) {
+    return { attempted: false, waOk: null, emailOk: null, skipped: 'not_found' };
   }
-
-  const booking = claimed as Booking & { court?: { id: string; name: string } | null };
+  if (booking.payment_status !== 'paid') {
+    return { attempted: false, waOk: null, emailOk: null, skipped: 'not_paid' };
+  }
 
   const { data: settingsData } = await supabase.from('settings').select('key, value');
   const map = Object.fromEntries(
     (settingsData ?? []).map((r: { key: string; value: string }) => [r.key, r.value])
   );
-  const courtName = booking.court?.name ?? map.court_name ?? 'GOR Badminton';
 
-  // ── WhatsApp ─────────────────────────────────────────────────────────────
-  if (map.fonnte_enabled === 'true') {
-    try {
-      const result = await notifyConfirmed(booking as Booking, courtName, map.wa_template_confirmed);
-      if (!result.ok) console.error('[post-payment-notify] WA gagal:', result.error);
-    } catch (err) {
-      console.error('[post-payment-notify] WA error:', err);
-    }
+  const waNeeded    = map.fonnte_enabled === 'true';
+  const emailNeeded = Boolean(booking.customer_email) && Boolean(process.env.RESEND_API_KEY);
+  const waDone      = waNeeded ? Boolean(booking.wa_notified_at) : true;
+  const emailDone   = emailNeeded ? Boolean(booking.email_notified_at) : true;
+
+  if (waDone && emailDone) {
+    // Sudah selesai semua, tidak ada yang perlu dikirim ulang.
+    return { attempted: false, waOk: waNeeded ? true : null, emailOk: emailNeeded ? true : null, skipped: 'already_done' };
   }
 
-  // ── Email invoice ────────────────────────────────────────────────────────
-  if (booking.customer_email && process.env.RESEND_API_KEY) {
-    try {
-      await sendInvoiceEmail(booking, courtName);
-    } catch (err) {
-      console.error('[post-payment-notify] Email error:', err);
-    }
+  // ── Klaim lock atomik (bukan penanda permanen) ────────────────────────────
+  const staleBefore = new Date(Date.now() - LOCK_STALE_MS).toISOString();
+  const nowIso = new Date().toISOString();
+
+  const { data: locked, error: lockErr } = await supabase
+    .from('bookings')
+    .update({ notification_lock_at: nowIso })
+    .eq('id', bookingId)
+    .eq('payment_status', 'paid')
+    .or(`notification_lock_at.is.null,notification_lock_at.lt.${staleBefore}`)
+    .select('*, court:courts(id,name)')
+    .single();
+
+  if (lockErr || !locked) {
+    // Proses lain (webhook/polling) sedang mengirim — aman untuk skip.
+    return { attempted: false, waOk: null, emailOk: null, skipped: 'locked' };
   }
+
+  const b = locked as Booking & {
+    court?: { id: string; name: string } | null;
+    wa_notified_at?: string | null;
+    email_notified_at?: string | null;
+  };
+  const courtName = b.court?.name ?? map.court_name ?? 'GOR Badminton';
+
+  let waOk: boolean | null = null;
+  let emailOk: boolean | null = null;
+  const errors: string[] = [];
+
+  try {
+    // ── WhatsApp ─────────────────────────────────────────────────────────
+    if (waNeeded && !b.wa_notified_at) {
+      try {
+        const result = await notifyConfirmed(b as Booking, courtName, map.wa_template_confirmed);
+        waOk = result.ok;
+        if (result.ok) {
+          await supabase.from('bookings').update({ wa_notified_at: new Date().toISOString() }).eq('id', bookingId);
+        } else {
+          errors.push(`WA: ${result.error}`);
+          console.error('[post-payment-notify] WA gagal:', result.error);
+        }
+      } catch (err) {
+        waOk = false;
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push(`WA: ${msg}`);
+        console.error('[post-payment-notify] WA exception:', err);
+      }
+    } else if (b.wa_notified_at) {
+      waOk = true;
+    }
+
+    // ── Email invoice ────────────────────────────────────────────────────
+    if (emailNeeded && !b.email_notified_at) {
+      try {
+        await sendInvoiceEmail(b, courtName);
+        emailOk = true;
+        await supabase.from('bookings').update({ email_notified_at: new Date().toISOString() }).eq('id', bookingId);
+      } catch (err) {
+        emailOk = false;
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push(`Email: ${msg}`);
+        console.error('[post-payment-notify] Email error:', err);
+      }
+    } else if (b.email_notified_at) {
+      emailOk = true;
+    }
+  } finally {
+    // ── Lepas lock supaya percobaan berikutnya bisa retry kalau masih ada
+    // yang gagal. INI KUNCI dari fix: kegagalan tidak lagi permanen. ──────
+    await supabase.from('bookings').update({
+      notification_lock_at: null,
+      last_notification_error: errors.length ? errors.join(' | ') : null,
+    }).eq('id', bookingId);
+  }
+
+  return { attempted: true, waOk, emailOk };
 }
 
 async function sendInvoiceEmail(booking: Booking, courtName: string) {

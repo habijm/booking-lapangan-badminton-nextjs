@@ -6,7 +6,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifySignature, getTransactionStatus } from '@/lib/midtrans';
-import { sendPaidBookingNotifications } from '@/lib/payment-notifications';
 import { MidtransNotification, mapMidtransStatus } from '@/types/payment';
 import { sendPostPaymentNotifications } from '@/lib/post-payment-notify';
 

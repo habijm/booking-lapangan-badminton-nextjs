@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getTransactionStatus } from '@/lib/midtrans';
-import { sendPaidBookingNotifications } from '@/lib/payment-notifications';
 import { mapMidtransStatus } from '@/types/payment';
 import { sendPostPaymentNotifications } from '@/lib/post-payment-notify';
 
@@ -28,7 +27,8 @@ export async function GET(req: NextRequest) {
     .select(`
       id, status, payment_status, payment_id, payment_method,
       transaction_id, snap_token, snap_url, amount, paid_at,
-      customer_name, customer_phone, customer_email, invoice_sent_at,
+      customer_name, customer_phone, customer_email,
+      wa_notified_at, email_notified_at,
       booking_date, start_time, end_time, duration_hours, court_id,
       court:courts(id, name, price_per_hour)
     `)
@@ -37,38 +37,6 @@ export async function GET(req: NextRequest) {
 
   if (error || !booking) {
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
-  }
-
-  const bookingRecord = booking;
-  const resolvedBookingId = bookingId as string;
-
-  async function trySendIfNeeded() {
-    console.log('[payment/status] notification gate', {
-      bookingId: resolvedBookingId,
-      paymentStatus: bookingRecord.payment_status,
-      invoiceSentAt: bookingRecord.invoice_sent_at ?? null,
-    });
-
-    if (bookingRecord.payment_status !== 'paid' || bookingRecord.invoice_sent_at) {
-      console.log('[payment/status] notification skipped');
-      return;
-    }
-
-    try {
-      console.log('[payment/status] invoking payment notification helper', { bookingId: resolvedBookingId });
-      const notificationOk = await sendPaidBookingNotifications(bookingRecord);
-
-      if (notificationOk) {
-        const sentAt = new Date().toISOString();
-        await supabase.from('bookings').update({ invoice_sent_at: sentAt }).eq('id', resolvedBookingId);
-        bookingRecord.invoice_sent_at = sentAt;
-        console.log('[payment/status] invoice_sent_at set after successful notifications', { bookingId: resolvedBookingId });
-      } else {
-        console.log('[payment/status] Notifikasi belum lengkap, invoice_sent_at tidak diisi agar bisa dicoba ulang.');
-      }
-    } catch (notifErr) {
-      console.error('[payment/status] Notification error:', notifErr);
-    }
   }
 
   // Kalau masih pending, coba sinkronisasi dari Midtrans
@@ -95,24 +63,26 @@ export async function GET(req: NextRequest) {
           }
           await supabase.from('bookings').update(updates).eq('id', bookingId);
           Object.assign(booking, updates);
-
-          // ── Kirim notifikasi WA + Email begitu status berubah jadi paid ──
-          // Jalur ini penting untuk local dev, karena webhook Midtrans tidak
-          // bisa reach localhost — polling inilah yang jadi satu-satunya
-          // trigger notifikasi saat development.
-          if (newStatus === 'paid') {
-            try {
-              await sendPostPaymentNotifications(bookingId);
-            } catch (notifErr) {
-              console.error('[payment/status] Notification error:', notifErr);
-            }
-          }
         }
       }
     } catch { /* skip sync error */ }
   }
 
-  await trySendIfNeeded();
+  // ── Kirim notifikasi WA + Email kalau sudah paid ────────────────────────
+  // SATU-SATUNYA jalur pengiriman (tidak ada lagi jalur duplikat lama).
+  // Fungsi ini idempotent & aman dipanggil berkali-kali: channel yang sudah
+  // sukses tidak akan dikirim ulang, channel yang masih gagal akan dicoba
+  // lagi di setiap pemanggilan berikutnya (poll berikutnya / webhook / cron).
+  if (booking.payment_status === 'paid') {
+    try {
+      const result = await sendPostPaymentNotifications(bookingId);
+      if (result.attempted) {
+        console.log('[payment/status] Hasil notifikasi:', { bookingId, ...result });
+      }
+    } catch (notifErr) {
+      console.error('[payment/status] Notification error:', notifErr);
+    }
+  }
 
   return NextResponse.json({ booking });
 }
