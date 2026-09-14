@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import { CourtSettings } from '@/lib/config';
 import { BadmintonEvent, EventCategory, EventStatus, EVENT_CATEGORY_CONFIG, EVENT_STATUS_CONFIG } from '@/types/booking';
 import { useEvents } from '@/hooks/useEvents';
+import { Icon, type IconName } from '@/components/Icons';
 
 interface Props { settings: CourtSettings; initialEvents: BadmintonEvent[] }
 
@@ -48,7 +49,7 @@ function EventCard({ event, waNumber }: { event: BadmintonEvent; waNumber: strin
         {/* Badges */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${cat.bg} ${cat.border} ${cat.color}`}>
-            {cat.icon} {cat.label}
+            <Icon name={cat.icon} size={12} /> {cat.label}
           </span>
           <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${sta.bg} ${sta.border} ${sta.color}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${sta.dot}`}/>
@@ -68,39 +69,39 @@ function EventCard({ event, waNumber }: { event: BadmintonEvent; waNumber: strin
 
         {/* Info grid */}
         <div className="grid grid-cols-2 gap-2 mb-4">
-          <InfoItem icon="📅" label="Tanggal">
+          <InfoItem icon="calendar" label="Tanggal">
             {format(startDate, 'd MMM', { locale: id })}
             {event.start_date !== event.end_date && ` – ${format(endDate, 'd MMM yyyy', { locale: id })}`}
             {event.start_date === event.end_date && ` ${format(startDate, 'yyyy', { locale: id })}`}
           </InfoItem>
           {event.start_time && (
-            <InfoItem icon="⏰" label="Mulai">
+            <InfoItem icon="clock" label="Mulai">
               {event.start_time.slice(0,5)} WIB
             </InfoItem>
           )}
           {event.entry_fee > 0 && (
-            <InfoItem icon="💰" label="Biaya Daftar">
+            <InfoItem icon="wallet" label="Biaya Daftar">
               Rp {event.entry_fee.toLocaleString('id')}
             </InfoItem>
           )}
           {event.entry_fee === 0 && (
-            <InfoItem icon="🆓" label="Biaya Daftar">
+            <InfoItem icon="checkIcon" label="Biaya Daftar">
               <span className="text-[#52B788] font-bold">GRATIS</span>
             </InfoItem>
           )}
           {event.prize_pool && (
-            <InfoItem icon="🏆" label="Total Hadiah">
+            <InfoItem icon="trophy" label="Total Hadiah">
               <span className="text-yellow-400 font-bold">{event.prize_pool}</span>
             </InfoItem>
           )}
           {event.max_participants && (
-            <InfoItem icon="👥" label="Peserta">
+            <InfoItem icon="users" label="Peserta">
               {event.current_participants}/{event.max_participants}
               {isFull && <span className="text-red-400 font-bold ml-1">(Penuh)</span>}
             </InfoItem>
           )}
           {deadline && (
-            <InfoItem icon="⏳" label="Deadline Daftar">
+            <InfoItem icon="hourglass" label="Deadline Daftar">
               <span className={regClosed ? 'text-red-400' : 'text-amber-400'}>
                 {format(deadline, 'd MMM yyyy', { locale: id })}
                 {regClosed && ' (Ditutup)'}
@@ -140,11 +141,11 @@ function EventCard({ event, waNumber }: { event: BadmintonEvent; waNumber: strin
             regClosed ? 'border-white/10 bg-white/3 text-white/30'    :
                         'border-[#52B788]/20 bg-[#52B788]/5 text-[#74C69D]/50'
           }`}>
-            {isFull ? '⛔ Pendaftaran Penuh' : regClosed ? '⏱️ Pendaftaran Ditutup' : 'Info via WhatsApp'}
+            {isFull ? 'Pendaftaran Penuh' : regClosed ? 'Pendaftaran Ditutup' : 'Info via WhatsApp'}
           </div>
         ) : event.status === 'ongoing' ? (
           <div className="text-center py-2.5 rounded-xl border border-yellow-500/30 bg-yellow-500/8 text-yellow-400 text-xs font-bold">
-            🏸 Sedang Berlangsung
+            Sedang Berlangsung
           </div>
         ) : null}
       </div>
@@ -152,10 +153,10 @@ function EventCard({ event, waNumber }: { event: BadmintonEvent; waNumber: strin
   );
 }
 
-function InfoItem({ icon, label, children }: { icon: string; label: string; children: React.ReactNode }) {
+function InfoItem({ icon, label, children }: { icon: IconName; label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-start gap-2">
-      <span className="text-sm mt-0.5 flex-shrink-0">{icon}</span>
+      <Icon name={icon} size={14} className="text-[#74C69D]/60 mt-0.5 flex-shrink-0" />
       <div>
         <div className="text-[10px] text-[#74C69D]/40 font-semibold uppercase tracking-wide">{label}</div>
         <div className="text-xs text-white font-medium leading-tight">{children}</div>

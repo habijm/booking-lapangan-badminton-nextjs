@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { PAYMENT_STATUS_CONFIG, PaymentStatus } from '@/types/payment';
+import { Icon, type IconName } from '@/components/Icons';
 
 // ── Feature toggle ────────────────────────────────────────────────────────────
 // Fitur "Cek Booking via 4 digit terakhir HP" dinonaktifkan sementara.
@@ -227,7 +228,7 @@ function CekBookingContent() {
                       </span>
                       {ps && (
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${ps.bg} ${ps.border} ${ps.color}`}>
-                          {ps.icon} {ps.label}
+                          <Icon name={ps.icon} size={14} /> {ps.label}
                         </span>
                       )}
                     </div>
@@ -287,7 +288,7 @@ function BookingDetail({ booking, onBack }: { booking: BookingResult; onBack?: (
 
       {/* Status utama */}
       <div className={`p-5 rounded-2xl border text-center space-y-2 ${ps ? `${ps.bg} ${ps.border}` : `${st.bg} ${st.border}`}`}>
-        <div className="text-4xl">{ps?.icon ?? '📋'}</div>
+        <Icon name={ps?.icon ?? 'fileText'} size={36} className={ps?.color ?? st.color} />
         <h2 className={`font-bold text-xl font-display ${ps?.color ?? st.color}`}>
           {ps?.label ?? st.label}
         </h2>
@@ -311,16 +312,16 @@ function BookingDetail({ booking, onBack }: { booking: BookingResult; onBack?: (
           <h3 className="text-[#74C69D]/60 text-xs uppercase tracking-widest font-semibold">Detail Booking</h3>
         </div>
         <div className="px-5 py-4 space-y-3">
-          {[
-            { label:'📅 Tanggal',   value: dl },
-            { label:'⏰ Jam',       value: `${data.start_time.slice(0,5)} – ${data.end_time.slice(0,5)} WIB` },
-            { label:'⏱ Durasi',    value: `${data.duration_hours} jam` },
-            { label:'🏟 Lapangan',  value: data.court?.name ?? 'Lapangan' },
-            { label:'👤 Nama',      value: data.customer_name },
-            ...(data.status ? [{ label:'📋 Status', value: st.label }] : []),
-          ].map(({ label, value }) => (
+            {[
+              { icon:'calendar' as IconName, label:'Tanggal',   value: dl },
+              { icon:'clock' as IconName, label:'Jam',       value: `${data.start_time.slice(0,5)} – ${data.end_time.slice(0,5)} WIB` },
+              { icon:'timer' as IconName, label:'Durasi',    value: `${data.duration_hours} jam` },
+              { icon:'court' as IconName, label:'Lapangan',  value: data.court?.name ?? 'Lapangan' },
+              { icon:'user' as IconName, label:'Nama',      value: data.customer_name },
+              ...(data.status ? [{ icon:'fileText' as IconName, label:'Status', value: st.label }] : []),
+            ].map(({ icon, label, value }) => (
             <div key={label} className="flex justify-between items-start gap-3">
-              <span className="text-[#74C69D]/50 text-xs flex-shrink-0">{label}</span>
+                <span className="text-[#74C69D]/50 text-xs flex-shrink-0 inline-flex items-center gap-1.5"><Icon name={icon} size={13} />{label}</span>
               <span className="text-white font-medium text-xs text-right">{value}</span>
             </div>
           ))}
@@ -335,12 +336,12 @@ function BookingDetail({ booking, onBack }: { booking: BookingResult; onBack?: (
           </div>
           <div className="px-5 py-4 space-y-3">
             {[
-              { label:'💰 Total',   value: data.amount ? `Rp ${data.amount.toLocaleString('id')}` : '—' },
-              { label:'💳 Metode',  value: data.payment_method ?? '—' },
-              { label:'📊 Status',  value: ps?.label ?? '—' },
-            ].map(({ label, value }) => (
+              { icon:'wallet' as IconName, label:'Total',   value: data.amount ? `Rp ${data.amount.toLocaleString('id')}` : '—' },
+              { icon:'creditCard' as IconName, label:'Metode',  value: data.payment_method ?? '—' },
+              { icon:'info' as IconName, label:'Status',  value: ps?.label ?? '—' },
+            ].map(({ icon, label, value }) => (
               <div key={label} className="flex justify-between items-start gap-3">
-                <span className="text-[#74C69D]/50 text-xs flex-shrink-0">{label}</span>
+                <span className="text-[#74C69D]/50 text-xs flex-shrink-0 inline-flex items-center gap-1.5"><Icon name={icon} size={13} />{label}</span>
                 <span className="text-white font-medium text-xs text-right">{value}</span>
               </div>
             ))}

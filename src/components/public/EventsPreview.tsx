@@ -4,6 +4,7 @@ import { format, parseISO, differenceInDays } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useEvents } from '@/hooks/useEvents';
 import { BadmintonEvent, EVENT_CATEGORY_CONFIG, EVENT_STATUS_CONFIG } from '@/types/booking';
+import { Icon } from '@/components/Icons';
 
 interface Props { waNumber: string }
 
@@ -21,7 +22,7 @@ function MiniEventCard({ event, waNumber }: { event: BadmintonEvent; waNumber: s
       {/* Badges */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${cat.bg} ${cat.border} ${cat.color}`}>
-          {cat.icon} {cat.label}
+          <Icon name={cat.icon} size={12} /> {cat.label}
         </span>
         <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${sta.bg} ${sta.border} ${sta.color}`}>
           <span className={`w-1 h-1 rounded-full ${sta.dot}`}/>{sta.label}
@@ -38,15 +39,15 @@ function MiniEventCard({ event, waNumber }: { event: BadmintonEvent; waNumber: s
 
       {/* Info row */}
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#74C69D]/50">
-        <span>📅 {format(start, 'd MMM yyyy', { locale: id })}</span>
-        {event.prize_pool && <span className="text-yellow-400/70">🏆 {event.prize_pool}</span>}
-        {event.entry_fee === 0 ? <span className="text-[#52B788]">🆓 Gratis</span> : <span>💰 Rp {event.entry_fee.toLocaleString('id')}</span>}
+        <span className="inline-flex items-center gap-1"><Icon name="calendar" size={12} /> {format(start, 'd MMM yyyy', { locale: id })}</span>
+        {event.prize_pool && <span className="text-yellow-400/70 inline-flex items-center gap-1"><Icon name="trophy" size={12} /> {event.prize_pool}</span>}
+        {event.entry_fee === 0 ? <span className="text-[#52B788] inline-flex items-center gap-1"><Icon name="checkIcon" size={12} /> Gratis</span> : <span className="inline-flex items-center gap-1"><Icon name="wallet" size={12} /> Rp {event.entry_fee.toLocaleString('id')}</span>}
       </div>
 
       {/* CTA */}
       <a href={waLink} target="_blank" rel="noopener noreferrer"
         className="mt-auto flex items-center justify-center gap-1.5 py-2 rounded-lg bg-[#40916C]/20 hover:bg-[#40916C]/40 text-[#74C69D] text-xs font-bold border border-[#52B788]/20 transition-all">
-        Info & Daftar →
+        Info & Daftar <Icon name="chevronRight" size={14} />
       </a>
     </div>
   );
@@ -69,14 +70,14 @@ export function EventsPreview({ waNumber }: Props) {
         <div className="flex items-center justify-between mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xl">🏆</span>
+              <Icon name="trophy" size={20} className="text-[#74C69D]" />
               <h2 className="font-bold text-white font-display text-lg sm:text-xl">Event & Turnamen</h2>
             </div>
             <p className="text-[#74C69D]/40 text-xs sm:text-sm">Pertandingan dan perlombaan yang akan datang</p>
           </div>
           <a href="/events"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#52B788]/20 text-[#74C69D]/60 hover:text-[#74C69D] hover:border-[#52B788]/40 text-xs font-semibold transition-all whitespace-nowrap">
-            Lihat Semua →
+            Lihat Semua <Icon name="chevronRight" size={14} />
           </a>
         </div>
 

@@ -1,5 +1,7 @@
 'use client';
 
+import { Icon } from '@/components/Icons';
+
 import { useEffect } from 'react';
 
 export default function Error({
@@ -20,7 +22,7 @@ export default function Error({
       <div className="relative z-10 text-center max-w-md w-full">
         <div className="w-20 h-20 rounded-2xl border flex items-center justify-center mx-auto mb-6"
           style={{ background: 'rgba(239,68,68,0.15)', borderColor: 'rgba(239,68,68,0.3)' }}>
-          <span className="text-4xl">⚠️</span>
+          <Icon name="alertTriangle" size={32} className="mx-auto text-amber-400" />
         </div>
         <h2 className="text-2xl font-bold text-white font-display mb-3">Terjadi Kesalahan</h2>
         <p className="text-sm mb-8 leading-relaxed" style={{ color: 'rgba(116,198,157,0.6)' }}>

@@ -1,10 +1,12 @@
+import { Icon } from '@/components/Icons';
+
 export default function Loading() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6" style={{ background: '#0D1F16' }}>
       <div className="relative">
         <div className="w-20 h-20 rounded-2xl bg-[#40916C] flex items-center justify-center shadow-lg"
           style={{ boxShadow: '0 0 40px rgba(64,145,108,0.4)' }}>
-          <span className="text-4xl">🏸</span>
+          <Icon name="court" size={32} className="text-[#74C69D]" />
         </div>
         <div className="absolute inset-0 rounded-2xl animate-ping opacity-30"
           style={{ background: 'rgba(64,145,108,0.5)' }}/>

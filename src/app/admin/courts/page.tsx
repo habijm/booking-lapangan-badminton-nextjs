@@ -10,6 +10,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminCard, AdminSectionHeader, AdminButton, AdminInput } from '@/components/admin/AdminCard';
 import { Court } from '@/types/booking';
+import { Icon } from '@/components/Icons';
 
 export default function CourtsPage() {
   const { ready }                    = useAdminAuth();
@@ -51,7 +52,7 @@ export default function CourtsPage() {
     <AdminLayout courtName={settings.court_name}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5">
         <div>
-          <h1 className="text-xl font-bold text-white font-display">🏟️ Manajemen Lapangan</h1>
+          <h1 className="text-xl font-bold text-white font-display inline-flex items-center gap-2"><Icon name="court" size={20} /> Manajemen Lapangan</h1>
           <p className="text-[#74C69D]/50 text-sm mt-1">Tambah lapangan → selector otomatis muncul di halaman publik</p>
         </div>
 
@@ -102,7 +103,7 @@ export default function CourtsPage() {
             ))}</div>
           ) : courts.length === 0 ? (
             <div className="p-12 text-center">
-              <div className="text-4xl mb-2">🏟️</div>
+              <Icon name="court" size={32} className="mx-auto mb-2 text-[#74C69D]" />
               <p className="text-[#74C69D]/50 text-sm">Belum ada lapangan. Tambahkan di atas.</p>
             </div>
           ) : (
@@ -137,7 +138,7 @@ export default function CourtsPage() {
         </AdminCard>
 
         <div className="p-4 rounded-xl border border-[#52B788]/15 bg-[#52B788]/5 text-xs text-[#74C69D]/70">
-          <strong className="text-[#74C69D]">💡 Multi-Lapangan:</strong> Setelah ada lebih dari 1 lapangan aktif, halaman publik otomatis menampilkan selector lapangan dengan jadwal dan harga terpisah.
+          <strong className="text-[#74C69D] inline-flex items-center gap-1"><Icon name="info" size={14} /> Multi-Lapangan:</strong> Setelah ada lebih dari 1 lapangan aktif, halaman publik otomatis menampilkan selector lapangan dengan jadwal dan harga terpisah.
         </div>
       </div>
     </AdminLayout>

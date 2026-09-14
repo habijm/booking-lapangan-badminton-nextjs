@@ -37,12 +37,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const notification: MidtransNotification = await req.json();
-    console.log('[Midtrans callback] Notifikasi masuk:', notification.order_id, notification.transaction_status);
+    console.log('[Midtrans callback] Order:', notification.order_id?.slice(0, 12) + '...', notification.transaction_status);
 
     // ── Verifikasi signature ────────────────────────────────────────────────
     const isValid = await verifySignature(notification);
     if (!isValid) {
-      console.warn('[Midtrans callback] Invalid signature for order:', notification.order_id);
+      console.warn('[Midtrans callback] Invalid signature for order:', notification.order_id?.slice(0, 12) + '...');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
@@ -67,8 +67,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (findErr || !booking) {
-      console.error('[Midtrans callback] Booking not found for order:', orderId);
-      // Tetap return 200 agar Midtrans tidak retry terus
+      console.error('[Midtrans callback] Booking not found for order:', orderId?.slice(0, 12) + '...');
       return NextResponse.json({ message: 'Booking not found, ignored' }, { status: 200 });
     }
 
@@ -131,13 +130,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`[Midtrans callback] Updated booking ${booking.id}: payment=${paymentStatus}`);
+    console.log(`[Midtrans callback] Updated booking ${booking.id?.slice(0, 8)}...: payment=${paymentStatus}`);
     return NextResponse.json({ message: 'OK' }, { status: 200 });
 
   } catch (err) {
     console.error('[Midtrans callback] Error:', err);
-    // Return 200 agar Midtrans tidak spam retry
-    return NextResponse.json({ error: 'Internal error' }, { status: 200 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
 

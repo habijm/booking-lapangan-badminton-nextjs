@@ -1,4 +1,5 @@
 // src/types/payment.ts
+import type { IconName } from '@/components/Icons';
 
 export type PaymentStatus =
   | 'unpaid'
@@ -97,27 +98,27 @@ export interface CreatePaymentResponse {
 
 // ── Config pembayaran yang ditampilkan ke user ────────────────────────────────
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  credit_card:   '💳 Kartu Kredit/Debit',
-  bank_transfer: '🏦 Transfer Bank (VA)',
-  gopay:         '💚 GoPay',
-  shopeepay:     '🧡 ShopeePay',
-  qris:          '📱 QRIS',
-  indomaret:     '🏪 Indomaret',
-  alfamart:      '🏪 Alfamart',
-  bca_klikpay:   '🔵 BCA KlikPay',
-  bni_va:        '🟠 BNI Virtual Account',
-  bri_va:        '🔵 BRI Virtual Account',
-  mandiri_va:    '🟡 Mandiri Virtual Account',
-  permata_va:    '🟣 Permata Virtual Account',
+  credit_card:   'Kartu Kredit/Debit',
+  bank_transfer: 'Transfer Bank (VA)',
+  gopay:         'GoPay',
+  shopeepay:     'ShopeePay',
+  qris:          'QRIS',
+  indomaret:     'Indomaret',
+  alfamart:      'Alfamart',
+  bca_klikpay:   'BCA KlikPay',
+  bni_va:        'BNI Virtual Account',
+  bri_va:        'BRI Virtual Account',
+  mandiri_va:    'Mandiri Virtual Account',
+  permata_va:    'Permata Virtual Account',
 };
 
 export const PAYMENT_STATUS_CONFIG: Record<PaymentStatus, {
-  label: string; color: string; bg: string; border: string; icon: string;
+  label: string; color: string; bg: string; border: string; icon: IconName;
 }> = {
-  unpaid:   { label: 'Belum Bayar', color: 'text-white/40',   bg: 'bg-white/5',       border: 'border-white/10',      icon: '⏸️' },
-  pending:  { label: 'Menunggu',    color: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/30',  icon: '⏳' },
-  paid:     { label: 'Lunas',       color: 'text-[#74C69D]',  bg: 'bg-[#52B788]/10',  border: 'border-[#52B788]/30',  icon: '✅' },
-  failed:   { label: 'Gagal',       color: 'text-red-400',    bg: 'bg-red-500/10',    border: 'border-red-500/30',    icon: '❌' },
-  expired:  { label: 'Kedaluwarsa', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30', icon: '⌛' },
-  refunded: { label: 'Dikembalikan',color: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   icon: '↩️' },
+  unpaid:   { label: 'Belum Bayar', color: 'text-white/40',   bg: 'bg-white/5',       border: 'border-white/10',      icon: 'clock' },
+  pending:  { label: 'Menunggu',    color: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/30',  icon: 'hourglass' },
+  paid:     { label: 'Lunas',       color: 'text-[#74C69D]',  bg: 'bg-[#52B788]/10',  border: 'border-[#52B788]/30',  icon: 'checkIcon' },
+  failed:   { label: 'Gagal',       color: 'text-red-400',    bg: 'bg-red-500/10',    border: 'border-red-500/30',    icon: 'xCircle' },
+  expired:  { label: 'Kedaluwarsa', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30', icon: 'timer' },
+  refunded: { label: 'Dikembalikan',color: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   icon: 'refresh' },
 };

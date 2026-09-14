@@ -23,6 +23,7 @@ import { ExportButton } from '@/components/admin/ExportButton';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminCard, AdminSectionHeader, AdminBadge } from '@/components/admin/AdminCard';
+import { Icon, type IconName } from '@/components/Icons';
 
 type TabView = 'overview' | 'schedule' | 'bookings' | 'add';
 
@@ -42,15 +43,16 @@ function fmtRupiah(n: number) {
   return n >= 1_000_000 ? `Rp ${(n/1_000_000).toFixed(1)}jt` : `Rp ${(n/1000).toFixed(0)}rb`;
 }
 
-// ── Stat card component ───────────────────────────────────────────────────────
 function StatCard({ icon, label, value, sub, badge, badgeOk }: {
-  icon: string; label: string; value: string | number; sub: string;
+  icon: IconName; label: string; value: string | number; sub: string;
   badge?: string; badgeOk?: boolean;
 }) {
   return (
     <div className="rounded-2xl p-4 border border-[#52B788]/15" style={{ background: 'rgba(255,255,255,0.04)' }}>
       <div className="flex items-start justify-between mb-3">
-        <span className="text-2xl">{icon}</span>
+        <div className="w-10 h-10 rounded-xl bg-[#40916C]/20 flex items-center justify-center">
+          <Icon name={icon} size={20} className="text-[#74C69D]" />
+        </div>
         {badge && (
           <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${badgeOk ? 'bg-[#52B788]/20 text-[#74C69D]' : 'bg-red-500/20 text-red-400'}`}>
             {badge}
@@ -80,7 +82,7 @@ export default function AdminDashboardPage() {
 
   const { settings }    = useSettings();
   const { courts }      = useCourts(true);
-  const { role, can }   = useUserRole();
+  const { role, can, error: roleError } = useUserRole();
   const { bookings: dayBookings, loading: dayLoading } = useBookings(selectedDate, selectedCourt);
   const { bookings: allBookings } = useAllBookings();
 
@@ -89,6 +91,22 @@ export default function AdminDashboardPage() {
     allBookings, periodFrom, periodTo,
     settings.price_per_hour, settings.opening_hour, settings.closing_hour,
   );
+
+  if (roleError) {
+    return (
+      <AdminLayout courtName={settings.court_name}>
+        <div className="max-w-md mx-auto px-4 pt-20 text-center">
+          <Icon name="alertTriangle" size={40} className="mx-auto mb-4 text-amber-400" />
+          <h2 className="font-bold text-white font-display text-xl mb-2">Terjadi Kesalahan</h2>
+          <p className="text-[#74C69D]/60 text-sm mb-4">{roleError}</p>
+          <button onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-[#40916C] text-white rounded-xl text-sm font-bold hover:bg-[#52B788] transition-colors">
+            Coba Lagi
+          </button>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   // Auth guard — AFTER all hooks
   if (!ready) return (
@@ -170,17 +188,18 @@ export default function AdminDashboardPage() {
         <div className="flex gap-1 p-1 rounded-xl border border-[#52B788]/15 mb-6 overflow-x-auto"
           style={{ background: 'rgba(255,255,255,0.03)' }}>
           {([
-            { id:'overview', label:'📊 Overview' },
-            { id:'schedule', label:'📅 Jadwal' },
-            { id:'bookings', label:`📋 Booking${pendingCount > 0 ? ` (${pendingCount})` : ''}` },
-            { id:'add',      label:'➕ Tambah' },
-          ] as { id: TabView; label: string }[]).map(t => (
+            { id:'overview', label:'Overview', icon: 'chart' as IconName },
+            { id:'schedule', label:'Jadwal', icon: 'calendar' as IconName },
+            { id:'bookings', label:`Booking${pendingCount > 0 ? ` (${pendingCount})` : ''}`, icon: 'fileText' as IconName },
+            { id:'add',      label:'Tambah', icon: 'plus' as IconName },
+          ] as { id: TabView; label: string; icon: IconName }[]).map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex-1 min-w-fit px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
+              className={`flex-1 min-w-fit px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap flex items-center justify-center gap-1.5 ${
                 tab === t.id
                   ? 'bg-[#40916C] text-white shadow-lg shadow-[#40916C]/20'
                   : 'text-[#74C69D]/60 hover:text-[#74C69D] hover:bg-[#52B788]/10'
               }`}>
+              <Icon name={t.icon} size={16} />
               {t.label}
             </button>
           ))}
@@ -194,16 +213,16 @@ export default function AdminDashboardPage() {
 
             {/* KPI */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <StatCard icon="📅" label="Booking Hari Ini" value={todayBookings.length} sub={`${todayHours} jam terisi`}/>
-              <StatCard icon="📈" label="Bulan Ini" value={analytics.thisMonthBookings.length}
+              <StatCard icon="calendar" label="Booking Hari Ini" value={todayBookings.length} sub={`${todayHours} jam terisi`}/>
+              <StatCard icon="trendingUp" label="Bulan Ini" value={analytics.thisMonthBookings.length}
                 sub={`vs ${analytics.lastMonthBookings.length} bln lalu`}
                 badge={analytics.bookingGrowth !== 0 ? `${analytics.bookingGrowth>0?'+':''}${analytics.bookingGrowth}%` : undefined}
                 badgeOk={analytics.bookingGrowth >= 0}/>
-              <StatCard icon="💰" label="Est. Pendapatan" value={fmtRupiah(analytics.thisMonthRevenue)}
+              <StatCard icon="dollar" label="Est. Pendapatan" value={fmtRupiah(analytics.thisMonthRevenue)}
                 sub={`vs ${fmtRupiah(analytics.lastMonthRevenue)}`}
                 badge={analytics.revenueGrowth !== 0 ? `${analytics.revenueGrowth>0?'+':''}${analytics.revenueGrowth}%` : undefined}
                 badgeOk={analytics.revenueGrowth >= 0}/>
-              <StatCard icon="⏳" label="Pending" value={pendingCount}
+              <StatCard icon="timer" label="Pending" value={pendingCount}
                 sub={pendingCount > 0 ? 'Perlu konfirmasi' : 'Semua terkonfirmasi'}/>
             </div>
 
@@ -250,14 +269,14 @@ export default function AdminDashboardPage() {
                 <AdminSectionHeader title={`Besok (${format(addDays(new Date(),1),'d MMM',{locale:id})})`}/>
                 {tomorrowBookings.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-24 text-[#74C69D]/20">
-                    <span className="text-3xl mb-1">📭</span>
+                    <Icon name="calendar" size={28} className="mb-1" />
                     <span className="text-xs">Belum ada booking</span>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {tomorrowBookings.map(b => (
                       <div key={b.id} className="flex items-center gap-2 p-2.5 rounded-xl border border-[#52B788]/20 bg-[#52B788]/5">
-                        <span className="text-[#52B788] text-sm">⏰</span>
+                        <Icon name="clock" size={15} className="text-[#52B788]" />
                         <div className="min-w-0">
                           <div className="text-xs font-bold text-[#74C69D]">{b.start_time.slice(0,5)}–{b.end_time.slice(0,5)}</div>
                           <div className="text-[11px] text-[#74C69D]/50 truncate">{b.customer_name}</div>
@@ -293,12 +312,12 @@ export default function AdminDashboardPage() {
               {/* Period summary */}
               <div className="grid grid-cols-3 gap-2 mb-6">
                 {[
-                  {label:'Total Booking',value:analytics.periodConfirmed.length,icon:'📋'},
-                  {label:'Total Jam',value:`${analytics.periodHours}j`,icon:'⏱'},
-                  {label:'Est. Revenue',value:fmtRupiah(analytics.periodRevenue),icon:'💰'},
+                  {label:'Total Booking',value:analytics.periodConfirmed.length,icon:'fileText' as IconName},
+                  {label:'Total Jam',value:`${analytics.periodHours}j`,icon:'timer' as IconName},
+                  {label:'Est. Revenue',value:fmtRupiah(analytics.periodRevenue),icon:'wallet' as IconName},
                 ].map((s,i) => (
                   <div key={i} className="rounded-xl p-3 text-center border border-[#52B788]/15 bg-[#52B788]/5">
-                    <div className="text-base mb-0.5">{s.icon}</div>
+                    <Icon name={s.icon} size={16} className="mx-auto mb-0.5 text-[#74C69D]" />
                     <div className="font-bold text-[#74C69D] text-sm font-display">{s.value}</div>
                     <div className="text-[11px] text-[#74C69D]/40">{s.label}</div>
                   </div>
@@ -355,7 +374,7 @@ export default function AdminDashboardPage() {
                 <AdminSectionHeader title="Pelanggan Terbanyak" subtitle={periodLabel}/>
                 {analytics.topCustomers.length === 0 ? (
                   <div className="text-center py-8 text-[#74C69D]/20">
-                    <div className="text-3xl mb-2">👤</div>
+                    <Icon name="user" size={28} className="mx-auto mb-2" />
                     <div className="text-xs">Belum ada data</div>
                   </div>
                 ) : (
@@ -390,7 +409,7 @@ export default function AdminDashboardPage() {
             {pendingCount > 0 && (
               <div className="p-4 rounded-2xl border border-amber-500/25 bg-amber-500/8 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">⚠️</span>
+                  <Icon name="alertTriangle" size={22} className="text-amber-400" />
                   <div>
                     <div className="font-bold text-amber-400 font-display text-sm">{pendingCount} Booking Menunggu Konfirmasi</div>
                     <div className="text-xs text-amber-400/60 mt-0.5">Segera konfirmasi agar customer mendapat kepastian</div>
@@ -398,7 +417,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <button onClick={() => { setTab('bookings'); setBookingFilter('pending'); }}
                   className="flex-shrink-0 px-3 py-1.5 bg-amber-500 text-white text-xs font-bold rounded-lg hover:bg-amber-400 transition-colors">
-                  Lihat →
+                  Lihat <Icon name="chevronRight" size={14} />
                 </button>
               </div>
             )}
@@ -410,7 +429,9 @@ export default function AdminDashboardPage() {
                   <button onClick={() => router.push('/admin/courts')}
                     className="rounded-2xl p-4 text-left border border-[#52B788]/15 hover:border-[#52B788]/30 hover:bg-[#52B788]/5 transition-all group"
                     style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <div className="text-2xl mb-2">🏟️</div>
+                    <div className="w-10 h-10 rounded-xl bg-[#40916C]/20 flex items-center justify-center mb-2">
+                      <Icon name="court" size={20} className="text-[#74C69D]" />
+                    </div>
                     <div className="font-bold text-sm text-white font-display group-hover:text-[#74C69D] transition-colors">Lapangan</div>
                     <div className="text-xs text-[#74C69D]/40 mt-0.5">Tambah & kelola</div>
                   </button>
@@ -419,7 +440,9 @@ export default function AdminDashboardPage() {
                   <button onClick={() => router.push('/admin/settings')}
                     className="rounded-2xl p-4 text-left border border-[#52B788]/15 hover:border-[#52B788]/30 hover:bg-[#52B788]/5 transition-all group"
                     style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <div className="text-2xl mb-2">⚙️</div>
+                    <div className="w-10 h-10 rounded-xl bg-[#40916C]/20 flex items-center justify-center mb-2">
+                      <Icon name="settings" size={20} className="text-[#74C69D]" />
+                    </div>
                     <div className="font-bold text-sm text-white font-display group-hover:text-[#74C69D] transition-colors">Pengaturan</div>
                     <div className="text-xs text-[#74C69D]/40 mt-0.5">Harga, jam, notifikasi</div>
                   </button>
@@ -428,7 +451,9 @@ export default function AdminDashboardPage() {
                   <button onClick={() => router.push('/admin/roles')}
                     className="rounded-2xl p-4 text-left border border-[#52B788]/15 hover:border-[#52B788]/30 hover:bg-[#52B788]/5 transition-all group"
                     style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <div className="text-2xl mb-2">👥</div>
+                    <div className="w-10 h-10 rounded-xl bg-[#40916C]/20 flex items-center justify-center mb-2">
+                      <Icon name="users" size={20} className="text-[#74C69D]" />
+                    </div>
                     <div className="font-bold text-sm text-white font-display group-hover:text-[#74C69D] transition-colors">Roles</div>
                     <div className="text-xs text-[#74C69D]/40 mt-0.5">Kelola akses admin</div>
                   </button>

@@ -1,8 +1,10 @@
-// src/app/api/payment/create/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createSnapToken, generateOrderId, buildCallbackUrls } from '@/lib/midtrans';
 import { CreateBookingPayload } from '@/types/payment';
+import { paymentRateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { verifyCsrf, csrfErrorResponse } from '@/lib/auth-helpers';
+import { sanitizeString, sanitizePhone, sanitizeEmail } from '@/lib/sanitize';
 
 function getBaseUrl(req: NextRequest) {
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -32,6 +34,15 @@ async function getSettings(supabase: ReturnType<typeof supabaseAdmin>) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!verifyCsrf(req)) {
+    return csrfErrorResponse();
+  }
+
+  const rateLimitResult = await paymentRateLimit(req);
+  if (!rateLimitResult.success) {
+    return rateLimitResponse(rateLimitResult.resetTime);
+  }
+
   const supabase = supabaseAdmin();
 
   try {
@@ -42,11 +53,15 @@ export async function POST(req: NextRequest) {
       court_id, notes,
     } = body;
 
-    // ── Validasi field wajib ────────────────────────────────────────────────
-    if (!customer_name?.trim())  return NextResponse.json({ error: 'Nama wajib diisi' },           { status: 400 });
-    if (!customer_phone?.trim()) return NextResponse.json({ error: 'Nomor HP wajib diisi' },       { status: 400 });
-    if (!booking_date)           return NextResponse.json({ error: 'Tanggal wajib diisi' },        { status: 400 });
-    if (!start_time)             return NextResponse.json({ error: 'Jam mulai wajib diisi' },      { status: 400 });
+    const sanitizedName  = sanitizeString(customer_name || '');
+    const sanitizedPhone = sanitizePhone(customer_phone || '');
+    const sanitizedEmail = customer_email ? sanitizeEmail(customer_email) : null;
+    const sanitizedNotes = notes ? sanitizeString(notes) : null;
+
+    if (!sanitizedName)  return NextResponse.json({ error: 'Nama wajib diisi' },           { status: 400 });
+    if (!sanitizedPhone) return NextResponse.json({ error: 'Nomor HP wajib diisi' },       { status: 400 });
+    if (!booking_date)   return NextResponse.json({ error: 'Tanggal wajib diisi' },        { status: 400 });
+    if (!start_time)     return NextResponse.json({ error: 'Jam mulai wajib diisi' },      { status: 400 });
     if (!duration_hours || duration_hours < 1) return NextResponse.json({ error: 'Durasi tidak valid' }, { status: 400 });
 
     // ── Ambil settings ──────────────────────────────────────────────────────
@@ -114,14 +129,14 @@ export async function POST(req: NextRequest) {
     const { data: booking, error: bookingErr } = await supabase
       .from('bookings')
       .insert({
-        customer_name:   customer_name.trim(),
-        customer_phone:  customer_phone.trim(),
-        customer_email:  customer_email?.trim() || null,
+        customer_name:   sanitizedName,
+        customer_phone:  sanitizedPhone,
+        customer_email:  sanitizedEmail,
         booking_date,
         start_time,
         end_time,
         duration_hours,
-        notes:           notes?.trim() ?? null,
+        notes:           sanitizedNotes,
         court_id:        finalCourtId,
         status:          'pending',
         payment_status:  'unpaid',
@@ -146,9 +161,9 @@ export async function POST(req: NextRequest) {
       const snap = await createSnapToken({
         orderId,
         amount,
-        customerName:  customer_name.trim(),
-        customerPhone: customer_phone.trim(),
-        customerEmail: customer_email,
+        customerName:  sanitizedName,
+        customerPhone: sanitizedPhone,
+        customerEmail: sanitizedEmail ?? undefined,
         courtName:     finalCourtName,
         bookingDate:   booking_date,
         startTime:     start_time,

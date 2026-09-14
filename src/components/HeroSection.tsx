@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { CourtSettings } from '@/lib/config';
+import { Icon } from '@/components/Icons';
 
 interface Props { settings: CourtSettings }
 
@@ -35,9 +36,9 @@ export default function HeroSection({ settings }: Props) {
   ];
 
   const FEATURES = [
-    { icon: '⚡', label: 'Booking Instan',   desc: 'Langsung via WhatsApp' },
-    { icon: '📅', label: 'Cek Real-Time',    desc: 'Jadwal selalu ter-update' },
-    { icon: '✅', label: 'Konfirmasi Cepat', desc: 'Admin responsif 24 jam' },
+    { icon: 'zap' as const, label: 'Booking Instan',   desc: 'Langsung via WhatsApp' },
+    { icon: 'calendar' as const, label: 'Cek Real-Time',    desc: 'Jadwal selalu ter-update' },
+    { icon: 'checkIcon' as const, label: 'Konfirmasi Cepat', desc: 'Admin responsif 24 jam' },
   ];
 
   return (
@@ -102,11 +103,7 @@ export default function HeroSection({ settings }: Props) {
 
             {settings.court_address && (
               <p className="flex items-center gap-2 text-[#74C69D]/70 text-sm mb-6">
-                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
+                <Icon name="mapPin" size={16} className="flex-shrink-0" />
                 {settings.court_address}
               </p>
             )}
@@ -115,18 +112,15 @@ export default function HeroSection({ settings }: Props) {
             <div className="flex flex-wrap gap-3 mb-8 sm:mb-10">
               <Link href="/#jadwal"
                 className="inline-flex items-center gap-2 px-5 sm:px-6 py-3 sm:py-3.5 rounded-xl bg-[#40916C] hover:bg-[#52B788] text-white font-bold transition-all duration-200 active:scale-95 shadow-lg shadow-[#40916C]/30 text-sm sm:text-base">
-                <span>📅</span> Lihat Jadwal
+                <Icon name="calendar" size={16} /> Lihat Jadwal
               </Link>
               <a href="/events"
                 className="inline-flex items-center gap-2 px-5 sm:px-6 py-3 sm:py-3.5 rounded-xl border-2 border-[#52B788]/40 text-[#74C69D] hover:bg-[#52B788]/10 font-bold transition-all duration-200 active:scale-95 text-sm sm:text-base">
-                <span>🏆</span> Lihat Event
+                <Icon name="trophy" size={16} /> Lihat Event
               </a>
               <a href={waLink} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-5 sm:px-6 py-3 sm:py-3.5 rounded-xl border-2 border-[#52B788]/20 text-[#74C69D]/60 hover:bg-[#52B788]/10 font-bold transition-all duration-200 active:scale-95 text-sm sm:text-base">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.556 4.116 1.528 5.847L0 24l6.337-1.508A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.807 9.807 0 01-5.001-1.366l-.36-.213-3.727.977.995-3.635-.234-.373A9.773 9.773 0 012.182 12C2.182 6.58 6.58 2.182 12 2.182S21.818 6.58 21.818 12 17.42 21.818 12 21.818z"/>
-                </svg>
+                  <Icon name="message" size={16} />
                 Chat WhatsApp
               </a>
             </div>
@@ -151,7 +145,7 @@ export default function HeroSection({ settings }: Props) {
             <div ref={shuttleRef} aria-hidden="true"
               className="absolute -top-6 right-4 sm:right-8 text-5xl sm:text-6xl transition-transform duration-700 ease-out select-none pointer-events-none"
               style={{ transform: 'rotate(-15deg)' }}>
-              🏸
+              <Icon name="zap" size={48} className="text-[#74C69D]" />
             </div>
 
             {/* Preview card */}
@@ -161,7 +155,7 @@ export default function HeroSection({ settings }: Props) {
               {/* Card header */}
               <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-[#52B788]/10 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#40916C] flex items-center justify-center text-xs sm:text-sm">🏸</div>
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#40916C] flex items-center justify-center"><Icon name="court" size={16} className="text-white" /></div>
                   <div>
                     <div className="text-white font-bold text-xs sm:text-sm font-display truncate max-w-[140px]">{settings.court_name}</div>
                     <div className="text-[#74C69D]/60 text-[10px] sm:text-xs">Jadwal Hari Ini</div>
@@ -197,7 +191,7 @@ export default function HeroSection({ settings }: Props) {
                       slot.status === 'pending'   ? 'text-amber-400/80' : 'text-red-400/50'
                     }`}>
                       {slot.status === 'available' ? '✓ Tersedia' :
-                       slot.status === 'pending'   ? `⏳ ${slot.name}` : `✗ ${slot.name}`}
+                       slot.status === 'pending'   ? `Menunggu ${slot.name}` : `Tidak tersedia ${slot.name}`}
                     </span>
                   </div>
                 ))}
@@ -222,7 +216,7 @@ export default function HeroSection({ settings }: Props) {
           {FEATURES.map((f) => (
             <div key={f.label}
               className="flex items-center gap-3 px-4 py-3 sm:py-3.5 rounded-xl border border-[#52B788]/15 bg-[#52B788]/5">
-              <span className="text-xl sm:text-2xl flex-shrink-0">{f.icon}</span>
+              <Icon name={f.icon} size={22} className="text-[#74C69D] flex-shrink-0" />
               <div>
                 <div className="text-white font-bold text-sm font-display">{f.label}</div>
                 <div className="text-[#A8D5BC]/60 text-xs">{f.desc}</div>

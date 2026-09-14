@@ -1,5 +1,7 @@
 'use client';
 
+import { Icon, type IconName } from '@/components/Icons';
+
 interface Props {
   children: React.ReactNode;
   className?: string;
@@ -17,14 +19,21 @@ export function AdminCard({ children, className = '', padding = 'md' }: Props) {
   );
 }
 
-export function AdminSectionHeader({ title, subtitle, action }: {
-  title: string; subtitle?: string; action?: React.ReactNode;
+export function AdminSectionHeader({ title, subtitle, action, icon }: {
+  title: string; subtitle?: string; action?: React.ReactNode; icon?: IconName;
 }) {
   return (
     <div className="flex items-start justify-between gap-4 mb-5">
-      <div>
-        <h2 className="font-bold text-white font-display text-base sm:text-lg">{title}</h2>
-        {subtitle && <p className="text-[#74C69D]/60 text-xs sm:text-sm mt-0.5">{subtitle}</p>}
+      <div className="flex items-start gap-2">
+        {icon && (
+          <div className="w-8 h-8 rounded-lg bg-[#40916C]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Icon name={icon} size={16} className="text-[#74C69D]" />
+          </div>
+        )}
+        <div>
+          <h2 className="font-bold text-white font-display text-base sm:text-lg">{title}</h2>
+          {subtitle && <p className="text-[#74C69D]/60 text-xs sm:text-sm mt-0.5">{subtitle}</p>}
+        </div>
       </div>
       {action && <div className="flex-shrink-0">{action}</div>}
     </div>

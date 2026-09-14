@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { PAYMENT_STATUS_CONFIG, PaymentStatus } from '@/types/payment';
+import { Icon } from '@/components/Icons';
 
 // ── Badge status pembayaran ──────────────────────────────────────────────────
 interface BadgeProps {
@@ -23,7 +24,7 @@ export function PaymentStatusBadge({ paymentStatus, bookingSource, amount, onCli
   if (bookingSource === 'whatsapp') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#25D366]/10 border border-[#25D366]/20 text-[#4ADE80]">
-        💬 WhatsApp
+        <Icon name="message" size={12} /> WhatsApp
       </span>
     );
   }
@@ -33,7 +34,7 @@ export function PaymentStatusBadge({ paymentStatus, bookingSource, amount, onCli
       onClick={onClick}
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-all hover:opacity-80 ${ps.bg} ${ps.border} ${ps.color} ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
     >
-      <span>{ps.icon}</span>
+      <Icon name={ps.icon} size={13} />
       <span>{ps.label}</span>
       {amount && paymentStatus === 'paid' && (
         <span className="ml-1 opacity-60">· Rp {amount.toLocaleString('id')}</span>
@@ -126,7 +127,7 @@ export function InvoiceModal({ booking, isOpen, onClose, courtName }: InvoiceMod
         <div className="px-5 py-5 space-y-4">
           {/* Status */}
           <div className={`p-4 rounded-xl border text-center ${ps.bg} ${ps.border}`}>
-            <div className="text-2xl mb-1">{ps.icon}</div>
+            <Icon name={ps.icon} size={24} className={`mb-1 ${ps.color}`} />
             <div className={`font-bold text-sm ${ps.color}`}>{ps.label}</div>
             {booking.paid_at && (
               <div className="text-[#74C69D]/50 text-xs mt-1">

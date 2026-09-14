@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { PAYMENT_STATUS_CONFIG, PaymentStatus } from '@/types/payment';
+import { Icon, type IconName } from '@/components/Icons';
 
 interface BookingDetail {
   id:             string;
@@ -63,7 +64,7 @@ export default function BookingStatusClient() {
   if (!bookingId) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#0A1F12' }}>
       <div className="text-center space-y-3 p-6">
-        <div className="text-4xl">🔍</div>
+        <Icon name="search" size={32} className="mx-auto text-[#74C69D]" />
         <h2 className="font-bold text-white text-lg">Booking tidak ditemukan</h2>
         <p className="text-[#74C69D]/50 text-sm">Parameter booking_id tidak ada.</p>
         <button onClick={() => router.push('/')}
@@ -88,7 +89,7 @@ export default function BookingStatusClient() {
   if (error || !booking) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#0A1F12' }}>
       <div className="text-center space-y-3 p-6">
-        <div className="text-4xl">⚠️</div>
+        <Icon name="alertTriangle" size={32} className="mx-auto text-amber-400" />
         <h2 className="font-bold text-white text-lg">{error || 'Booking tidak ditemukan'}</h2>
         <button onClick={() => router.push('/')}
           className="mt-2 px-6 py-2.5 rounded-xl bg-[#40916C] text-white text-sm font-bold">
@@ -113,7 +114,7 @@ export default function BookingStatusClient() {
         <div className="flex items-center gap-3">
           <button onClick={() => router.push('/')}
             className="w-9 h-9 rounded-xl border border-[#52B788]/20 flex items-center justify-center text-[#74C69D]/50 hover:text-[#74C69D] transition-all text-sm">
-            ←
+            <Icon name="chevronLeft" size={16} />
           </button>
           <div>
             <h1 className="font-bold text-white text-lg font-display">Status Booking</h1>
@@ -123,7 +124,7 @@ export default function BookingStatusClient() {
 
         {/* Status utama */}
         <div className={`p-5 rounded-2xl border ${ps.bg} ${ps.border} text-center space-y-2`}>
-          <div className="text-4xl">{ps.icon}</div>
+          <Icon name={ps.icon} size={36} className={ps.color} />
           <h2 className={`font-bold text-xl font-display ${ps.color}`}>{ps.label}</h2>
           {isPaid && (
             <p className="text-[#74C69D]/60 text-sm">
@@ -152,15 +153,15 @@ export default function BookingStatusClient() {
           </div>
           <div className="px-5 py-4 space-y-3">
             {[
-              { label: '📅 Tanggal',    value: dateLabel },
-              { label: '⏰ Jam',        value: `${booking.start_time.slice(0,5)} – ${booking.end_time.slice(0,5)} WIB` },
-              { label: '⏱️ Durasi',    value: `${booking.duration_hours} jam` },
-              { label: '🏟️ Lapangan',  value: courtName },
-              { label: '👤 Nama',       value: booking.customer_name },
-              { label: '📱 WhatsApp',   value: booking.customer_phone },
-            ].map(({ label, value }) => (
+              { icon: 'calendar' as IconName, label: 'Tanggal', value: dateLabel },
+              { icon: 'clock' as IconName, label: 'Jam', value: `${booking.start_time.slice(0,5)} – ${booking.end_time.slice(0,5)} WIB` },
+              { icon: 'timer' as IconName, label: 'Durasi', value: `${booking.duration_hours} jam` },
+              { icon: 'court' as IconName, label: 'Lapangan', value: courtName },
+              { icon: 'user' as IconName, label: 'Nama', value: booking.customer_name },
+              { icon: 'phone' as IconName, label: 'WhatsApp', value: booking.customer_phone },
+            ].map(({ icon, label, value }) => (
               <div key={label} className="flex justify-between items-start gap-3">
-                <span className="text-[#74C69D]/50 text-xs flex-shrink-0">{label}</span>
+                <span className="text-[#74C69D]/50 text-xs flex-shrink-0 inline-flex items-center gap-1.5"><Icon name={icon} size={13} />{label}</span>
                 <span className="text-white font-medium text-xs text-right">{value}</span>
               </div>
             ))}
@@ -174,13 +175,13 @@ export default function BookingStatusClient() {
           </div>
           <div className="px-5 py-4 space-y-3">
             {[
-              { label: '💰 Total',         value: `Rp ${booking.amount?.toLocaleString('id') ?? '—'}` },
-              { label: '💳 Metode',         value: booking.payment_method ?? '—' },
-              { label: '🔖 Order ID',       value: booking.payment_id ?? '—' },
-              { label: '🧾 Transaction ID', value: booking.transaction_id ?? '—' },
-            ].map(({ label, value }) => (
+              { icon: 'wallet' as IconName, label: 'Total', value: `Rp ${booking.amount?.toLocaleString('id') ?? '—'}` },
+              { icon: 'creditCard' as IconName, label: 'Metode', value: booking.payment_method ?? '—' },
+              { icon: 'fileText' as IconName, label: 'Order ID', value: booking.payment_id ?? '—' },
+              { icon: 'fileText' as IconName, label: 'Transaction ID', value: booking.transaction_id ?? '—' },
+            ].map(({ icon, label, value }) => (
               <div key={label} className="flex justify-between items-start gap-3">
-                <span className="text-[#74C69D]/50 text-xs flex-shrink-0">{label}</span>
+                <span className="text-[#74C69D]/50 text-xs flex-shrink-0 inline-flex items-center gap-1.5"><Icon name={icon} size={13} />{label}</span>
                 <span className="text-white font-medium text-xs text-right font-mono">{value}</span>
               </div>
             ))}
@@ -192,18 +193,18 @@ export default function BookingStatusClient() {
           {isPending && booking.snap_url && (
             <a href={booking.snap_url} target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-[#40916C] hover:bg-[#52B788] text-white font-bold text-sm transition-all shadow-lg shadow-[#40916C]/20">
-              💳 Lanjutkan Pembayaran
+              <Icon name="creditCard" size={16} /> Lanjutkan Pembayaran
             </a>
           )}
           <button onClick={() => fetchStatus(true)} disabled={polling}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-[#52B788]/25 text-[#74C69D]/70 hover:text-[#74C69D] hover:border-[#52B788]/40 text-sm transition-all disabled:opacity-40">
             {polling
               ? <><span className="w-3.5 h-3.5 border-2 border-[#52B788]/30 border-t-[#52B788] rounded-full animate-spin"/>Memeriksa…</>
-              : '🔄 Refresh Status'}
+              : <><Icon name="refresh" size={16} /> Refresh Status</>}
           </button>
           <button onClick={() => router.push('/')}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-[#52B788]/15 text-[#74C69D]/40 hover:text-[#74C69D]/60 text-sm transition-all">
-            ← Kembali ke Jadwal
+            <Icon name="chevronLeft" size={16} /> Kembali ke Jadwal
           </button>
         </div>
 

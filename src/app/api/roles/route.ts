@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
+import { verifyAdminSession, verifyCsrf, csrfErrorResponse } from '@/lib/auth-helpers';
 
-// GET: list all users with roles
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authResult = await verifyAdminSession(request, ['admin', 'superadmin']);
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   const supabase = createAdminClient();
 
   const { data: roles, error } = await supabase
@@ -11,7 +16,6 @@ export async function GET() {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Enrich with email from auth.users
   const enriched = await Promise.all(
     (roles ?? []).map(async (r) => {
       const { data } = await supabase.auth.admin.getUserById(r.user_id);
@@ -26,8 +30,16 @@ export async function GET() {
   return NextResponse.json({ users: enriched });
 }
 
-// POST: add or update role for a user by email
 export async function POST(request: NextRequest) {
+  if (!verifyCsrf(request)) {
+    return csrfErrorResponse();
+  }
+
+  const authResult = await verifyAdminSession(request, ['superadmin']);
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   const supabase = createAdminClient();
   const { email, role } = await request.json();
 
@@ -35,7 +47,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'email dan role wajib diisi' }, { status: 400 });
   }
 
-  // Look up user by email via admin API
   const { data: list, error: listErr } = await supabase.auth.admin.listUsers();
   if (listErr) return NextResponse.json({ error: listErr.message }, { status: 500 });
 
@@ -56,8 +67,12 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ success: true, user_id: user.id });
 }
 
-// PATCH: update role for existing user
 export async function PATCH(request: NextRequest) {
+  const authResult = await verifyAdminSession(request, ['superadmin']);
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   const supabase = createAdminClient();
   const { user_id, role } = await request.json();
 
@@ -73,8 +88,12 @@ export async function PATCH(request: NextRequest) {
   return NextResponse.json({ success: true });
 }
 
-// DELETE: remove role (revoke access)
 export async function DELETE(request: NextRequest) {
+  const authResult = await verifyAdminSession(request, ['superadmin']);
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   const supabase = createAdminClient();
   const { user_id } = await request.json();
 

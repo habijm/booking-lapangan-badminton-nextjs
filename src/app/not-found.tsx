@@ -1,3 +1,5 @@
+import { Icon } from '@/components/Icons';
+
 import Link from 'next/link';
 
 export default function NotFound() {
@@ -12,7 +14,7 @@ export default function NotFound() {
           style={{ color: 'rgba(82,183,136,0.12)' }}>404</div>
         <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto -mt-8 mb-6"
           style={{ background: 'rgba(64,145,108,0.15)', border: '1px solid rgba(82,183,136,0.2)' }}>
-          <span className="text-3xl">🏸</span>
+          <Icon name="court" size={28} className="text-[#74C69D]" />
         </div>
         <h2 className="text-2xl font-bold text-white font-display mb-3">Halaman Tidak Ditemukan</h2>
         <p className="text-sm mb-8 leading-relaxed" style={{ color: 'rgba(116,198,157,0.6)' }}>
@@ -27,7 +29,7 @@ export default function NotFound() {
           <Link href="/#jadwal"
             className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all"
             style={{ border: '1px solid rgba(82,183,136,0.3)', color: 'rgba(116,198,157,0.8)' }}>
-            📅 Lihat Jadwal
+            <Icon name="calendar" size={16} /> Lihat Jadwal
           </Link>
         </div>
       </div>

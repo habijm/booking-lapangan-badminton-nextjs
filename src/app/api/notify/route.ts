@@ -2,8 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { notifyConfirmed, notifyCancelled } from '@/lib/whatsapp';
 import { Booking } from '@/types/booking';
+import { verifyAdminSession, verifyCsrf, csrfErrorResponse } from '@/lib/auth-helpers';
+import { notifyRateLimit, rateLimitResponse } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
+  if (!verifyCsrf(request)) {
+    return csrfErrorResponse();
+  }
+
+  const rateLimitResult = await notifyRateLimit(request);
+  if (!rateLimitResult.success) {
+    return rateLimitResponse(rateLimitResult.resetTime);
+  }
+
+  const authResult = await verifyAdminSession(request, ['operator', 'admin', 'superadmin']);
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   const supabase = createAdminClient();
 
   let body: { bookingId: string; type: 'confirmed' | 'cancelled'; reason?: string };

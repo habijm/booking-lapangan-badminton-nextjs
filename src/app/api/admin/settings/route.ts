@@ -1,11 +1,7 @@
-// ═══════════════════════════════════════════════════════════════════════════
-// src/app/api/admin/settings/booking-mode/route.ts
-// GET  → ambil mode saat ini
-// PUT  → ubah mode
-// ═══════════════════════════════════════════════════════════════════════════
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { BookingMode } from '@/types/payment';
+import { verifyAdminSession } from '@/lib/auth-helpers';
 
 function supabaseAdmin() {
   return createClient(
@@ -23,8 +19,11 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
-  // Verifikasi admin session (sesuaikan dengan auth system Anda)
-  // Contoh: pakai Supabase session dari cookie
+  const authResult = await verifyAdminSession(req, ['admin', 'superadmin']);
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   const supabase = supabaseAdmin();
 
   try {
@@ -41,24 +40,3 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Gagal menyimpan' }, { status: 500 });
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// src/app/api/admin/settings/payment-status/route.ts
-// GET → cek apakah Midtrans sudah terkonfigurasi dengan benar
-// ═══════════════════════════════════════════════════════════════════════════
-// export async function GET() {
-//   const clientKey  = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY ?? '';
-//   const serverKey  = process.env.MIDTRANS_SERVER_KEY ?? '';
-//   const env        = process.env.MIDTRANS_ENV ?? 'sandbox';
-//   const webhookUrl = process.env.NEXT_PUBLIC_SITE_URL
-//     ? `${process.env.NEXT_PUBLIC_SITE_URL}/api/payment/callback`
-//     : '';
-//
-//   return NextResponse.json({
-//     env,
-//     clientKey:  clientKey.startsWith('SB-Mid-client-') || clientKey.startsWith('Mid-client-'),
-//     serverKey:  serverKey.startsWith('SB-Mid-server-') || serverKey.startsWith('Mid-server-'),
-//     webhookSet: webhookUrl.startsWith('https://'),
-//   });
-// }
-// → Simpan di file terpisah: src/app/api/admin/settings/payment-status/route.ts

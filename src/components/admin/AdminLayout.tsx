@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogoutButton } from './LogoutButton';
 import { useUserRole } from '@/hooks/useUserRole';
+import { Icon } from '@/components/Icons';
+import type { IconName } from '@/components/Icons';
 
 interface Props {
   children: React.ReactNode;
@@ -12,13 +14,13 @@ interface Props {
   pendingCount?: number;
 }
 
-const NAV_ITEMS = [
-  { href: '/admin/dashboard', label: 'Dashboard',  icon: '📊' },
-  { href: '/admin/courts',    label: 'Lapangan',   icon: '🏟️' },
-  { href: '/admin/events',       label: 'Event',      icon: '🏆' },
-  { href: '/admin/memberships',  label: 'Langganan',  icon: '🎫' },
-  { href: '/admin/settings',  label: 'Pengaturan', icon: '⚙️' },
-  { href: '/admin/roles',     label: 'Roles',      icon: '👥' },
+const NAV_ITEMS: Array<{ href: string; label: string; icon: IconName }> = [
+  { href: '/admin/dashboard', label: 'Dashboard',  icon: 'dashboard' },
+  { href: '/admin/courts',    label: 'Lapangan',   icon: 'court' },
+  { href: '/admin/events',       label: 'Event',      icon: 'trophy' },
+  { href: '/admin/memberships',  label: 'Langganan',  icon: 'ticket' },
+  { href: '/admin/settings',  label: 'Pengaturan', icon: 'settings' },
+  { href: '/admin/roles',     label: 'Roles',      icon: 'users' },
 ];
 
 export function AdminLayout({ children, courtName = 'GOR Badminton', pendingCount = 0 }: Props) {
@@ -46,7 +48,7 @@ export function AdminLayout({ children, courtName = 'GOR Badminton', pendingCoun
             {/* Logo */}
             <Link href="/admin/dashboard" className="flex items-center gap-2.5 group">
               <div className="w-8 h-8 rounded-lg bg-[#40916C] flex items-center justify-center group-hover:bg-[#52B788] transition-colors">
-                <span className="text-sm">🏸</span>
+                <Icon name="court" size={18} className="text-white" />
               </div>
               <div className="hidden sm:block">
                 <div className="text-white font-bold text-sm font-display leading-tight">{courtName}</div>
@@ -70,7 +72,7 @@ export function AdminLayout({ children, courtName = 'GOR Badminton', pendingCoun
                         ? 'bg-[#40916C] text-white'
                         : 'text-[#74C69D]/70 hover:text-[#74C69D] hover:bg-[#52B788]/10'
                     }`}>
-                    <span>{item.icon}</span>
+                    <Icon name={item.icon} size={14} />
                     {item.label}
                   </Link>
                 );
@@ -100,7 +102,7 @@ export function AdminLayout({ children, courtName = 'GOR Badminton', pendingCoun
                 className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] font-semibold transition-all ${
                   active ? 'text-[#74C69D]' : 'text-[#74C69D]/40 hover:text-[#74C69D]/70'
                 }`}>
-                <span className="text-base leading-none">{item.icon}</span>
+                <Icon name={item.icon} size={18} />
                 {item.label}
                 {active && <span className="w-1 h-1 rounded-full bg-[#74C69D] mt-0.5"/>}
               </Link>

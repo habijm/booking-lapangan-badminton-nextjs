@@ -8,25 +8,25 @@ import { BannerSponsor } from '@/components/public/BannerSponsor';
 import { BannerInfo } from '@/components/public/BannerInfo';
 import { EventsPreview } from '@/components/public/EventsPreview';
 import { CourtSettings } from '@/lib/config';
+import { Icon, type IconName } from '@/components/Icons';
 
 interface Props { settings: CourtSettings }
 
-// Langkah cara booking — berbeda tergantung mode
-const STEPS_WHATSAPP = [
-  { step: '01', icon: '👀', title: 'Cek Jadwal',
+const STEPS_WHATSAPP: Array<{ step: string; icon: IconName; title: string; desc: string }> = [
+  { step: '01', icon: 'eye', title: 'Cek Jadwal',
     desc: 'Pilih tanggal dan lihat slot yang tersedia (hijau = tersedia)' },
-  { step: '02', icon: '💬', title: 'Hubungi via WhatsApp',
+  { step: '02', icon: 'message', title: 'Hubungi via WhatsApp',
     desc: 'Klik slot tersedia atau tombol WhatsApp untuk langsung chat admin' },
-  { step: '03', icon: '✅', title: 'Konfirmasi Booking',
+  { step: '03', icon: 'check', title: 'Konfirmasi Booking',
     desc: 'Admin konfirmasi dan slot otomatis tampil sebagai "Dikonfirmasi"' },
 ];
 
-const STEPS_DIRECT = [
-  { step: '01', icon: '👀', title: 'Pilih Slot',
+const STEPS_DIRECT: Array<{ step: string; icon: IconName; title: string; desc: string }> = [
+  { step: '01', icon: 'eye', title: 'Pilih Slot',
     desc: 'Pilih tanggal dan klik slot tersedia yang ingin dipesan' },
-  { step: '02', icon: '📝', title: 'Isi Data & Bayar',
+  { step: '02', icon: 'fileText', title: 'Isi Data & Bayar',
     desc: 'Isi nama, nomor HP, lalu pilih metode pembayaran (kartu, transfer, GoPay, QRIS, dll)' },
-  { step: '03', icon: '✅', title: 'Booking Dikonfirmasi',
+  { step: '03', icon: 'check', title: 'Booking Dikonfirmasi',
     desc: 'Setelah pembayaran berhasil, booking langsung dikonfirmasi otomatis' },
 ];
 
@@ -93,7 +93,7 @@ export default function PublicPage({ settings }: Props) {
           <div className="rounded-2xl border border-[#52B788]/15 p-5 sm:p-6"
             style={{ background: 'rgba(255,255,255,0.03)' }}>
             <h2 className="text-lg font-bold text-white font-display mb-5 flex items-center gap-2">
-              <span>{isDirectMode ? '💳' : 'ℹ️'}</span>
+              <Icon name={isDirectMode ? 'creditCard' : 'info'} size={20} className="text-[#74C69D]" />
               {isDirectMode ? 'Cara Booking & Pembayaran' : 'Cara Booking Lapangan'}
             </h2>
             <div className="grid sm:grid-cols-3 gap-4">
@@ -105,7 +105,9 @@ export default function PublicPage({ settings }: Props) {
                     </div>
                   </div>
                   <div>
-                    <div className="text-lg mb-1">{item.icon}</div>
+                    <div className="w-8 h-8 rounded-lg bg-[#52B788]/20 flex items-center justify-center mb-1">
+                      <Icon name={item.icon} size={16} className="text-[#74C69D]" />
+                    </div>
                     <h3 className="font-bold text-white font-display text-sm">{item.title}</h3>
                     <p className="text-xs text-[#74C69D]/50 mt-1 leading-relaxed">{item.desc}</p>
                   </div>
@@ -115,7 +117,10 @@ export default function PublicPage({ settings }: Props) {
 
             {/* Info penyewaan dinamis */}
             <div className="mt-5 p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
-              <h3 className="font-bold text-amber-400 font-display text-sm mb-2">📋 Informasi Penyewaan</h3>
+              <h3 className="font-bold text-amber-400 font-display text-sm mb-2 flex items-center gap-2">
+                <Icon name="info" size={16} className="text-amber-400" />
+                Informasi Penyewaan
+              </h3>
               <ul className="text-xs text-amber-300/70 space-y-1.5">
                 {[
                   `Jam operasional: ${settings.opening_hour}:00 – ${settings.closing_hour}:00 WIB`,
@@ -142,7 +147,8 @@ export default function PublicPage({ settings }: Props) {
                   target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#22c55e] text-white font-bold text-sm transition-all shadow-lg shadow-[#25D366]/20 active:scale-95"
                 >
-                  <span>💬</span> Chat WhatsApp Admin
+                  <Icon name="message" size={18} />
+                  Chat WhatsApp Admin
                 </a>
               </div>
             )}
@@ -162,7 +168,7 @@ export default function PublicPage({ settings }: Props) {
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-[#40916C] flex items-center justify-center">
-              <span className="text-base">🏸</span>
+              <Icon name="court" size={18} className="text-white" />
             </div>
             <div>
               <div className="text-sm font-bold text-white font-display">{settings.court_name}</div>

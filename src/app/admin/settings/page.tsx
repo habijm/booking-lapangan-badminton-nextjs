@@ -14,6 +14,7 @@ import { DEFAULT_SETTINGS, SETTINGS_LABELS, CourtSettings, BannerType, parseClos
 import BookingModeSwitch from '@/components/admin/BookingModeSwitch';
 import { BookingMode } from '@/types/payment';
 import { WhatsAppTemplatesEditor } from '@/components/admin/WhatsAppTemplatesEditor';
+import { Icon } from '@/components/Icons';
 
 type SettingsFlat = Record<string, string>;
 
@@ -145,10 +146,10 @@ export default function SettingsPage() {
   );
 
   const BANNER_TYPES: { value: BannerType; label: string; preview: string }[] = [
-    { value: 'promo',   label: '🎉 Promo',   preview: 'Hijau gelap' },
-    { value: 'info',    label: 'ℹ️ Info',    preview: 'Biru'       },
-    { value: 'warning', label: '⚠️ Penting', preview: 'Amber'      },
-    { value: 'sponsor', label: '✨ Sponsor',  preview: 'Ungu'       },
+    { value: 'promo',   label: 'Promo',   preview: 'Hijau gelap' },
+    { value: 'info',    label: 'Info',    preview: 'Biru'       },
+    { value: 'warning', label: 'Penting', preview: 'Amber'      },
+    { value: 'sponsor', label: 'Sponsor',  preview: 'Ungu'       },
   ];
 
   // Parse dates for preview
@@ -354,7 +355,7 @@ export default function SettingsPage() {
                 </AdminCard>
 
                 <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/8 text-xs text-amber-400/80">
-                  <strong className="text-amber-400">💡 Tips:</strong> Gunakan fitur Pengumuman (tab Umum) untuk memberi
+                  <strong className="text-amber-400 inline-flex items-center gap-1"><Icon name="info" size={14} /> Tips:</strong> Gunakan fitur Pengumuman (tab Umum) untuk memberi
                   tahu customer tentang hari libur mendatang, meski jadwal belum diblokir.
                 </div>
               </>
@@ -365,16 +366,16 @@ export default function SettingsPage() {
               <>
                 <div className="grid sm:grid-cols-3 gap-3 mb-2">
                   {[
-                    { pos:'1', icon:'🎉', label:'Banner Promo',   desc:'Di bawah hero',         key:'promo'   },
-                    { pos:'2', icon:'🖼️', label:'Banner Sponsor', desc:'Di antara jadwal',       key:'sponsor' },
-                    { pos:'3', icon:'📌', label:'Info Strip',     desc:'Strip tipis atas footer', key:'info'   },
+                    { pos:'1', icon:'sparkles' as const, label:'Banner Promo',   desc:'Di bawah hero',         key:'promo'   },
+                    { pos:'2', icon:'image' as const, label:'Banner Sponsor', desc:'Di antara jadwal',       key:'sponsor' },
+                    { pos:'3', icon:'pin' as const, label:'Info Strip',     desc:'Strip tipis atas footer', key:'info'   },
                   ].map(b => (
                     <div key={b.pos} className={`p-3 rounded-xl border text-center transition-all ${
                       form[`banner_${b.key}_enabled`] === 'true'
                         ? 'border-[#52B788]/40 bg-[#52B788]/10'
                         : 'border-[#52B788]/10 bg-white/2'
                     }`}>
-                      <div className="text-xl mb-1">{b.icon}</div>
+                      <Icon name={b.icon} size={20} className="mx-auto mb-1 text-[#74C69D]" />
                       <div className="text-xs font-bold text-white">{b.label}</div>
                       <div className="text-[10px] text-[#74C69D]/40 mt-0.5">{b.desc}</div>
                       <div className={`text-[10px] font-semibold mt-1.5 ${form[`banner_${b.key}_enabled`] === 'true' ? 'text-[#52B788]' : 'text-white/20'}`}>
@@ -386,7 +387,7 @@ export default function SettingsPage() {
 
                 {/* Banner Promo */}
                 <AdminCard>
-                  <AdminSectionHeader title="🎉 Banner Promo" subtitle="Muncul di bawah hero section"/>
+                  <AdminSectionHeader title="Banner Promo" subtitle="Muncul di bawah hero section"/>
                   <div className="space-y-4">
                     <Toggle k="banner_promo_enabled" label="Aktifkan Banner Promo"/>
                     {form.banner_promo_enabled === 'true' && (

@@ -1,4 +1,5 @@
 import type { PaymentStatus, BookingSource } from '@/types/payment';
+import type { IconName } from '@/components/Icons';
 
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled';
 export type UserRole = 'operator' | 'admin' | 'superadmin';
@@ -123,12 +124,12 @@ export interface BadmintonEvent {
   updated_at: string;
 }
 
-export const EVENT_CATEGORY_CONFIG: Record<EventCategory, { label: string; icon: string; color: string; bg: string; border: string }> = {
-  tournament:   { label: 'Turnamen',     icon: '🏆', color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' },
-  championship: { label: 'Kejuaraan',    icon: '🥇', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
-  friendly:     { label: 'Persahabatan', icon: '🤝', color: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/30'   },
-  training:     { label: 'Pelatihan',    icon: '🎯', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
-  other:        { label: 'Lainnya',      icon: '📋', color: 'text-[#74C69D]',  bg: 'bg-[#52B788]/10',  border: 'border-[#52B788]/30'  },
+export const EVENT_CATEGORY_CONFIG: Record<EventCategory, { label: string; icon: IconName; color: string; bg: string; border: string }> = {
+  tournament:   { label: 'Turnamen',     icon: 'trophy', color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' },
+  championship: { label: 'Kejuaraan',    icon: 'trophy', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
+  friendly:     { label: 'Persahabatan', icon: 'users',  color: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/30'   },
+  training:     { label: 'Pelatihan',    icon: 'target', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
+  other:        { label: 'Lainnya',      icon: 'fileText', color: 'text-[#74C69D]', bg: 'bg-[#52B788]/10', border: 'border-[#52B788]/30' },
 };
 
 export const EVENT_STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bg: string; border: string; dot: string }> = {

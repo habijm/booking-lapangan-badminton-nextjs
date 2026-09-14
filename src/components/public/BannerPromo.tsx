@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { BannerConfig, BannerType } from '@/lib/config';
+import { Icon, type IconName } from '@/components/Icons';
 
 interface Props {
   banners: BannerConfig;
@@ -9,7 +10,7 @@ interface Props {
 }
 
 const TYPE_STYLES: Record<BannerType, {
-  bg: string; border: string; icon: string;
+  bg: string; border: string; icon: IconName;
   titleColor: string; bodyColor: string;
   btnBg: string; btnText: string;
   dismissColor: string;
@@ -17,7 +18,7 @@ const TYPE_STYLES: Record<BannerType, {
   promo: {
     bg:           'bg-gradient-to-r from-[#0D2B1C] to-[#0D1F16]',
     border:       'border-[#52B788]/30',
-    icon:         '🎉',
+    icon:         'sparkles',
     titleColor:   'text-white',
     bodyColor:    'text-[#A8D5BC]',
     btnBg:        'bg-[#40916C] hover:bg-[#52B788]',
@@ -27,7 +28,7 @@ const TYPE_STYLES: Record<BannerType, {
   info: {
     bg:           'bg-gradient-to-r from-blue-950/80 to-blue-900/60',
     border:       'border-blue-500/30',
-    icon:         'ℹ️',
+    icon:         'info',
     titleColor:   'text-white',
     bodyColor:    'text-blue-200',
     btnBg:        'bg-blue-600 hover:bg-blue-500',
@@ -37,7 +38,7 @@ const TYPE_STYLES: Record<BannerType, {
   warning: {
     bg:           'bg-gradient-to-r from-amber-950/80 to-amber-900/50',
     border:       'border-amber-500/30',
-    icon:         '⚠️',
+    icon:         'alertTriangle',
     titleColor:   'text-white',
     bodyColor:    'text-amber-200',
     btnBg:        'bg-amber-500 hover:bg-amber-400',
@@ -47,7 +48,7 @@ const TYPE_STYLES: Record<BannerType, {
   sponsor: {
     bg:           'bg-gradient-to-r from-purple-950/80 to-purple-900/50',
     border:       'border-purple-500/20',
-    icon:         '✨',
+    icon:         'sparkles',
     titleColor:   'text-white',
     bodyColor:    'text-purple-200',
     btnBg:        'bg-purple-600 hover:bg-purple-500',
@@ -77,7 +78,7 @@ export function BannerPromo({ banners, waNumber }: Props) {
 
           <div className="flex items-start gap-4 relative z-10">
             {/* Icon */}
-            <span className="text-3xl flex-shrink-0 mt-0.5">{s.icon}</span>
+            <Icon name={s.icon} size={28} className={`flex-shrink-0 mt-0.5 ${s.titleColor}`} />
 
             {/* Content */}
             <div className="flex-1 min-w-0">
@@ -99,7 +100,7 @@ export function BannerPromo({ banners, waNumber }: Props) {
                   className={`inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-xl text-xs font-bold
                     ${s.btnBg} ${s.btnText} transition-all duration-200 active:scale-95 shadow-lg`}
                 >
-                  {banners.promo_cta_text} →
+                  {banners.promo_cta_text} <Icon name="chevronRight" size={14} />
                 </a>
               )}
             </div>
@@ -110,9 +111,7 @@ export function BannerPromo({ banners, waNumber }: Props) {
               className={`flex-shrink-0 p-1.5 rounded-lg transition-colors ${s.dismissColor}`}
               aria-label="Tutup banner"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
-              </svg>
+              <Icon name="close" size={16} />
             </button>
           </div>
         </div>

@@ -8,21 +8,22 @@ import { useSettings } from '@/hooks/useSettings';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminCard, AdminSectionHeader, AdminButton } from '@/components/admin/AdminCard';
 import { UserRole, ROLE_CONFIG } from '@/types/booking';
+import { Icon } from '@/components/Icons';
 
 interface AdminUser { user_id: string; role: UserRole; email: string }
 
 export default function RolesPage() {
-  const { ready }                             = useAdminAuth();
-  const router                                = useRouter();
-  const { settings }                          = useSettings();
-  const { can, userId, loading: roleLoading } = useUserRole();
-  const [users, setUsers]                     = useState<AdminUser[]>([]);
-  const [loading, setLoading]                 = useState(true);
-  const [email, setEmail]                     = useState('');
-  const [role, setRole]                       = useState<UserRole>('operator');
-  const [saving, setSaving]                   = useState(false);
-  const [error, setError]                     = useState('');
-  const [success, setSuccess]                 = useState('');
+  const { ready }                              = useAdminAuth();
+  const router                                 = useRouter();
+  const { settings }                           = useSettings();
+  const { can, userId, loading: roleLoading, error: roleError } = useUserRole();
+  const [users, setUsers]                      = useState<AdminUser[]>([]);
+  const [loading, setLoading]                  = useState(true);
+  const [email, setEmail]                      = useState('');
+  const [role, setRole]                        = useState<UserRole>('operator');
+  const [saving, setSaving]                    = useState(false);
+  const [error, setError]                      = useState('');
+  const [success, setSuccess]                  = useState('');
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -36,12 +37,24 @@ export default function RolesPage() {
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  // Auth guard — AFTER all hooks
   if (!ready) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D1F16' }}>
       <span className="inline-block w-8 h-8 border-4 border-[#52B788]/20 border-t-[#52B788] rounded-full animate-spin"/>
     </div>
   );
+
+  if (roleError) {
+    return (
+      <AdminLayout courtName={settings.court_name}>
+        <div className="max-w-md mx-auto px-4 pt-20 text-center">
+          <Icon name="alertTriangle" size={40} className="mx-auto mb-4 text-amber-400" />
+          <h2 className="font-bold text-white font-display text-xl mb-2">Terjadi Kesalahan</h2>
+          <p className="text-[#74C69D]/60 text-sm mb-4">{roleError}</p>
+          <AdminButton onClick={() => window.location.reload()} className="mt-4">Coba Lagi</AdminButton>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   if (!roleLoading && !can('roles')) {
     return (
@@ -107,7 +120,10 @@ export default function RolesPage() {
     <AdminLayout courtName={settings.court_name}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5">
         <div>
-          <h1 className="text-xl font-bold text-white font-display">👥 Manajemen Role User</h1>
+          <h1 className="text-xl font-bold text-white font-display flex items-center gap-2">
+            <Icon name="users" size={24} className="text-[#74C69D]" />
+            Manajemen Role User
+          </h1>
           <p className="text-[#74C69D]/50 text-sm mt-1">Kelola akses dan permission setiap admin</p>
         </div>
 
@@ -123,7 +139,7 @@ export default function RolesPage() {
 
         {/* Add user form */}
         <AdminCard>
-          <AdminSectionHeader title="➕ Tambah / Update Role User"/>
+          <AdminSectionHeader title="Tambah / Update Role User" icon="plus"/>
           <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-3">
             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
               className={`${inputClass} flex-1`} placeholder="email@example.com" required/>
@@ -137,9 +153,9 @@ export default function RolesPage() {
               {saving ? <><span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Proses...</> : 'Tambah'}
             </AdminButton>
           </form>
-          {error   && <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">⚠️ {error}</div>}
-          {success && <div className="mt-3 p-3 rounded-xl bg-[#52B788]/10 border border-[#52B788]/20 text-[#74C69D] text-sm">✅ {success}</div>}
-          <p className="text-xs text-[#74C69D]/30 mt-3">💡 User harus sudah terdaftar di Supabase Auth dan pernah login minimal 1 kali.</p>
+          {error   && <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm inline-flex items-center gap-2"><Icon name="alertTriangle" size={15} /> {error}</div>}
+          {success && <div className="mt-3 p-3 rounded-xl bg-[#52B788]/10 border border-[#52B788]/20 text-[#74C69D] text-sm inline-flex items-center gap-2"><Icon name="checkIcon" size={15} /> {success}</div>}
+          <p className="text-xs text-[#74C69D]/30 mt-3 inline-flex items-center gap-1"><Icon name="info" size={13} /> User harus sudah terdaftar di Supabase Auth dan pernah login minimal 1 kali.</p>
         </AdminCard>
 
         {/* User list */}
@@ -155,7 +171,7 @@ export default function RolesPage() {
             ))}</div>
           ) : users.length === 0 ? (
             <div className="p-10 text-center">
-              <div className="text-3xl mb-2">👤</div>
+              <Icon name="user" size={28} className="mx-auto mb-2 text-[#74C69D]" />
               <p className="text-[#74C69D]/40 text-sm">Belum ada user terdaftar.</p>
             </div>
           ) : (
@@ -198,7 +214,7 @@ export default function RolesPage() {
         </AdminCard>
 
         <div className="p-4 rounded-xl border border-[#52B788]/15 bg-[#52B788]/5 text-xs text-[#74C69D]/60 space-y-1">
-          <p className="font-bold text-[#74C69D]">💡 Setup superadmin pertama kali?</p>
+          <p className="font-bold text-[#74C69D] inline-flex items-center gap-1"><Icon name="info" size={15} /> Setup superadmin pertama kali?</p>
           <p>Jalankan SQL ini di Supabase SQL Editor:</p>
           <pre className="mt-2 p-3 rounded-lg text-[11px] text-[#74C69D]/80 overflow-x-auto border border-[#52B788]/10" style={{background:'rgba(0,0,0,0.3)'}}>
 {`INSERT INTO user_roles (user_id, role)

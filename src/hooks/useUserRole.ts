@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { UserRole } from '@/types/booking';
 
@@ -8,28 +8,61 @@ export function useUserRole() {
   const [role, setRole]       = useState<UserRole | null>(null);
   const [userId, setUserId]   = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+
     async function load() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setLoading(false); return; }
+      try {
+        setLoading(true);
+        setError(null);
 
-      setUserId(session.user.id);
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (cancelled) return;
 
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', session.user.id)
-        .single();
+        if (sessionError || !session) {
+          setLoading(false);
+          return;
+        }
 
-      // If no role record → treat as 'admin' (backward compat for existing single-admin setups)
-      setRole((data?.role as UserRole) ?? 'admin');
-      setLoading(false);
+        setUserId(session.user.id);
+
+        const { data, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (cancelled) return;
+
+        if (rolesError) {
+          console.warn('[useUserRole] Role query error:', rolesError);
+          // Backward compat: jika tidak ada role, default ke 'admin'
+          setRole('admin');
+        } else {
+          setRole((data?.role as UserRole) ?? 'admin');
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('[useUserRole] Unexpected error:', err);
+          setError('Gagal memuat data user');
+          // Fallback ke admin agar halaman tetap bisa diakses
+          setRole('admin');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
     }
+
     load();
+    return () => { cancelled = true; controller.abort(); };
   }, []);
 
-  const can = (action: 'confirm' | 'cancel' | 'delete' | 'settings' | 'courts' | 'roles') => {
+  const can = useCallback((action: 'confirm' | 'cancel' | 'delete' | 'settings' | 'courts' | 'roles') => {
     if (!role) return false;
     const permissions: Record<typeof action, UserRole[]> = {
       confirm:  ['operator', 'admin', 'superadmin'],
@@ -40,7 +73,7 @@ export function useUserRole() {
       roles:    ['superadmin'],
     };
     return permissions[action].includes(role);
-  };
+  }, [role]);
 
-  return { role, userId, loading, can };
+  return { role, userId, loading, can, error };
 }

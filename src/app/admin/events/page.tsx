@@ -10,6 +10,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { useUserRole } from '@/hooks/useUserRole';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminCard, AdminSectionHeader, AdminButton } from '@/components/admin/AdminCard';
+import { Icon } from '@/components/Icons';
 import {
   BadmintonEvent, EventCategory, EventStatus,
   EVENT_CATEGORY_CONFIG, EVENT_STATUS_CONFIG,
@@ -145,15 +146,13 @@ export default function AdminEventsPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div>
-              <h1 className="text-xl font-bold text-white font-display">🏆 Manajemen Event</h1>
+              <h1 className="text-xl font-bold text-white font-display inline-flex items-center gap-2"><Icon name="trophy" size={20} /> Manajemen Event</h1>
               <p className="text-[#74C69D]/50 text-sm mt-0.5">Kelola pertandingan dan perlombaan badminton</p>
             </div>
             <div className="sm:ml-auto flex gap-2">
               <a href="/events" target="_blank"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#52B788]/20 text-[#74C69D]/60 hover:text-[#74C69D] text-xs transition-colors hover:border-[#52B788]/40">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                </svg>
+                <Icon name="externalLink" size={14} />
                 Lihat Publik
               </a>
               <AdminButton variant="primary" onClick={openNew}>
@@ -193,7 +192,7 @@ export default function AdminEventsPage() {
           ) : filtered.length === 0 ? (
             <AdminCard>
               <div className="py-16 text-center">
-                <div className="text-5xl mb-3">🏸</div>
+                <Icon name="court" size={40} className="mx-auto mb-3 text-[#74C69D]" />
                 <h3 className="text-white font-bold font-display mb-1">Belum Ada Event</h3>
                 <p className="text-[#74C69D]/40 text-sm mb-4">Tambahkan pertandingan atau perlombaan pertama.</p>
                 <AdminButton variant="primary" onClick={openNew}>+ Tambah Event Pertama</AdminButton>
@@ -213,7 +212,7 @@ export default function AdminEventsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1.5">
                           <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${cat.bg} ${cat.border} ${cat.color}`}>
-                            {cat.icon} {cat.label}
+                            <Icon name={cat.icon} size={12} /> {cat.label}
                           </span>
                           <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border ${sta.bg} ${sta.border} ${sta.color}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${sta.dot}`}/>{sta.label}
@@ -226,11 +225,11 @@ export default function AdminEventsPage() {
                         </div>
                         <h3 className="font-bold text-white font-display text-sm">{ev.title}</h3>
                         <div className="flex flex-wrap gap-3 mt-1 text-xs text-[#74C69D]/40">
-                          <span>📅 {format(startDate, 'EEE, d MMM yyyy', { locale: id })}</span>
-                          {ev.prize_pool && <span>🏆 {ev.prize_pool}</span>}
-                          {ev.max_participants && <span>👥 {ev.current_participants}/{ev.max_participants}</span>}
-                          {ev.entry_fee > 0 && <span>💰 Rp {ev.entry_fee.toLocaleString('id')}</span>}
-                          {ev.entry_fee === 0 && <span className="text-[#52B788]">🆓 Gratis</span>}
+                          <span className="inline-flex items-center gap-1"><Icon name="calendar" size={12} /> {format(startDate, 'EEE, d MMM yyyy', { locale: id })}</span>
+                          {ev.prize_pool && <span className="inline-flex items-center gap-1"><Icon name="trophy" size={12} /> {ev.prize_pool}</span>}
+                          {ev.max_participants && <span className="inline-flex items-center gap-1"><Icon name="users" size={12} /> {ev.current_participants}/{ev.max_participants}</span>}
+                          {ev.entry_fee > 0 && <span className="inline-flex items-center gap-1"><Icon name="wallet" size={12} /> Rp {ev.entry_fee.toLocaleString('id')}</span>}
+                          {ev.entry_fee === 0 && <span className="text-[#52B788] inline-flex items-center gap-1"><Icon name="checkIcon" size={12} /> Gratis</span>}
                         </div>
                       </div>
 
@@ -330,7 +329,7 @@ export default function AdminEventsPage() {
 
           {/* Tanggal & Waktu */}
           <AdminCard>
-            <AdminSectionHeader title="📅 Tanggal & Waktu"/>
+            <AdminSectionHeader title="Tanggal & Waktu"/>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Tanggal Mulai *</label>
@@ -362,7 +361,7 @@ export default function AdminEventsPage() {
 
           {/* Detail Event */}
           <AdminCard>
-            <AdminSectionHeader title="🏆 Detail Event"/>
+            <AdminSectionHeader title="Detail Event"/>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Total Hadiah</label>
@@ -396,7 +395,7 @@ export default function AdminEventsPage() {
 
           {/* Media */}
           <AdminCard>
-            <AdminSectionHeader title="🖼️ Media"/>
+            <AdminSectionHeader title="Media"/>
             <div>
               <label className={labelClass}>URL Gambar / Poster Event</label>
               <input type="url" value={form.image_url}
@@ -433,8 +432,8 @@ export default function AdminEventsPage() {
             </div>
           </AdminCard>
 
-          {error   && <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">⚠️ {error}</div>}
-          {success && <div className="p-3 rounded-xl bg-[#52B788]/10 border border-[#52B788]/20 text-[#74C69D] text-sm animate-fade-up">✅ {success}</div>}
+          {error   && <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm inline-flex items-center gap-2"><Icon name="alertTriangle" size={15} /> {error}</div>}
+          {success && <div className="p-3 rounded-xl bg-[#52B788]/10 border border-[#52B788]/20 text-[#74C69D] text-sm animate-fade-up inline-flex items-center gap-2"><Icon name="checkIcon" size={15} /> {success}</div>}
 
           <div className="flex gap-3 pb-8">
             <AdminButton type="submit" variant="primary" className="flex-1" disabled={saving}>

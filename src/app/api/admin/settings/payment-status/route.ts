@@ -1,7 +1,12 @@
-// src/app/api/admin/settings/payment-status/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAdminSession } from '@/lib/auth-helpers';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authResult = await verifyAdminSession(request, ['admin', 'superadmin']);
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY ?? '';
   const serverKey = process.env.MIDTRANS_SERVER_KEY ?? '';
   const env       = process.env.MIDTRANS_ENV ?? 'sandbox';

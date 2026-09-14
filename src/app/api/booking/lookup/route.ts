@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { format, subDays } from 'date-fns';
+import { bookingLookupRateLimit, rateLimitResponse } from '@/lib/rate-limit';
 
 export async function GET(req: NextRequest) {
+  const rateLimitResult = await bookingLookupRateLimit(req);
+  if (!rateLimitResult.success) {
+    return rateLimitResponse(rateLimitResult.resetTime);
+  }
+
   const { searchParams } = new URL(req.url);
   const phone_last4 = searchParams.get('phone_last4')?.trim();
 
